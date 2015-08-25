@@ -303,7 +303,10 @@ zinstall uinstall install: vmlinux
 
 dtbs: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
-	$(foreach DIR, $(DTSSUBDIR), $(Q)$(MAKE) $(build)=$(boot)/dts/$(DIR) MACHINE=$(MACHINE) dtbs)
+	$(Q)$(MAKE) $(build)=$(boot)/dts/15011 MACHINE=$(MACHINE) dtbs
+	$(Q)$(MAKE) $(build)=$(boot)/dts/15018 MACHINE=$(MACHINE) dtbs
+#wangjimin  hantong modify it for 32bit
+#	$(foreach DIR, $(DTSSUBDIR), $(Q)$(MAKE) $(build)=$(boot)/dts/$(DIR) MACHINE=$(MACHINE) dtbs)
 
 zImage-dtb: vmlinux scripts dtbs
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) DTSSUBDIR=$(DTSSUBDIR) $(boot)/$@
