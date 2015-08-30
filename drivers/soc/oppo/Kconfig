@@ -1,0 +1,19 @@
+config MACH_OPPO
+	bool "Oppo platform"
+	help
+	  Support for Oppo device variants.
+
+menu "Oppo specific options"
+
+config OPPO_DEVICE_INFO
+	bool "Oppo device info driver"
+	default y if MACH_OPPO
+	help
+	  Say Y to enable Oppo device info driver
+
+config RECORD_MDMRST
+	bool "Record modem reset"
+	help
+	  Say Y to record how many times the modem has restarted
+
+endmenu

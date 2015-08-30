@@ -28,6 +28,14 @@
 #include "mdss_panel.h"
 #include "mdss_dsi.h"
 #include "mdss_debug.h"
+#ifdef CONFIG_MACH_OPPO
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/08/27  Add for 14045 LCD */
+#include <soc/oppo/oppo_project.h>
+/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+extern void opchg_check_lcd_on(void);
+extern void opchg_check_lcd_off(void);
+extern int lcd_dev;
+#endif /*CONFIG_MACH_OPPO*/
 
 #define XO_CLK_RATE	19200000
 
@@ -465,6 +473,12 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata, int power_state)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_OPPO
+	/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+	if (is_project(OPPO_15011) || is_project(OPPO_15018))
+		opchg_check_lcd_off();
+#endif
+
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
@@ -553,6 +567,12 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+
+#ifdef CONFIG_MACH_OPPO
+	/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+	if (is_project(OPPO_15011) || is_project(OPPO_15018))
+		opchg_check_lcd_on();
+#endif
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);

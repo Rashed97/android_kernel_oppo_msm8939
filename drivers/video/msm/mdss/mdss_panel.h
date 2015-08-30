@@ -360,6 +360,10 @@ struct mdss_panel_info {
 	u32 clk_rate;
 	u32 clk_min;
 	u32 clk_max;
+#ifdef CONFIG_MACH_OPPO
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/05/20  Add for 18018 performance */
+	u32 mdp_transfer_time_us;
+#endif /*CONFIG_MACH_OPPO*/
 	u32 frame_count;
 	u32 is_3d_panel;
 	u32 out_format;
