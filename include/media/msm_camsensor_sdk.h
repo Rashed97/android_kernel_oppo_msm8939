@@ -149,6 +149,10 @@ enum actuator_type {
 	ACTUATOR_VCM,
 	ACTUATOR_PIEZO,
 	ACTUATOR_HVCM,
+#ifdef CONFIG_MACH_OPPO
+/*zhengrong.zhang 2015-01-23 Add for VCM */
+	ACTUATOR_HALL_EFFECT, 
+#endif
 };
 
 enum msm_flash_driver_type {
