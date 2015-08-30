@@ -45,6 +45,8 @@
 #include "wcd-mbhc-v2.h"
 #include "msm8916-wcd-irq.h"
 #include "msm8x16_wcd_registers.h"
+#include <soc/oppo/oppo_project.h>
+#define CONFIG_MACH_OPPO 1
 
 #define MSM8X16_WCD_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |\
 			SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_48000)
@@ -127,11 +129,14 @@ static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
 static const DECLARE_TLV_DB_SCALE(analog_gain, 0, 25, 1);
 static struct snd_soc_dai_driver msm8x16_wcd_i2s_dai[];
 
+/*xiang.fei@Multimedia, 2014/09/19, Add for compatible audio*/
+static char const *pcb_ver_text[] = {"pcb_ver1.0", "pcb_ver1.1", "pcb_ver1.2", "pcb_ver1.3", "pcb_ver1.4"};
+/*xiang.fei@Multimedia, 2014/09/19, Add end*/
+
 #define MSM8X16_WCD_ACQUIRE_LOCK(x) \
 	mutex_lock_nested(&x, SINGLE_DEPTH_NESTING);
 
 #define MSM8X16_WCD_RELEASE_LOCK(x) mutex_unlock(&x);
-
 
 /* Codec supports 2 IIR filters */
 enum {
@@ -156,6 +161,11 @@ struct hpf_work {
 	u8 tx_hpf_cut_of_freq;
 	struct delayed_work dwork;
 };
+/*xiang.fei@Multimedia, 2014/09/19, Add for compatible audio*/
+static int pcb_ver0 = 0;
+static int pcb_ver1 = 0;
+static int pcb_ver2 = 0;
+/*xiang.fei@Multimedia, 2014/09/19, Add end*/
 
 static struct hpf_work tx_hpf_work[NUM_DECIMATORS];
 
@@ -213,6 +223,43 @@ struct msm8x16_wcd_spmi msm8x16_wcd_modules[MAX_MSM8X16_WCD_DEVICE];
 static void *modem_state_notifier;
 
 static struct snd_soc_codec *registered_codec;
+#ifdef CONFIG_MACH_OPPO
+//John.Xu@PhoneSw.AudioDriver, 2015/02/11, Add for clear code
+static int inter_boost_for_ext_pa(void) {
+    int ret = 0;
+	return ret;
+}
+#endif /* CONFIG_MACH_OPPO */
+#ifdef CONFIG_MACH_OPPO
+/*xiang.fei@Multimedia, 2014/09/19, Add for compatible audio*/
+int pcb_ver(void)
+{
+    int ret = 0;
+    if(1 == pcb_ver0 && 1 == pcb_ver1 && 1 == pcb_ver2)
+	{
+        ret = 0;
+	}
+	else if(0 == pcb_ver0 && 1 == pcb_ver1 && 1 == pcb_ver2)
+	{
+	    ret = 1;
+	}
+	else if(1 == pcb_ver0 && 0 == pcb_ver1 && 1 == pcb_ver2)
+	{
+	    ret = 2;
+	}
+	else if(0 == pcb_ver0 && 0 == pcb_ver1 && 1 == pcb_ver2)
+	{
+	    ret = 3;
+	}
+	else
+	{
+	    ret = 4;
+	}
+
+	return ret;
+}
+//John.Xu@PhoneSw.AudioDriver, 2015/04/30, Add for 15025 headset compatible
+EXPORT_SYMBOL(pcb_ver);
 
 static void msm8x16_wcd_compute_impedance(s16 l, s16 r, uint32_t *zl,
 				uint32_t *zr, bool high)
@@ -234,6 +281,7 @@ static void msm8x16_wcd_compute_impedance(s16 l, s16 r, uint32_t *zl,
 	*zl = rl;
 	*zr = rr;
 }
+#endif
 
 static struct firmware_cal *msm8x16_wcd_get_hwdep_fw_cal(
 		struct snd_soc_codec *codec,
@@ -1223,6 +1271,26 @@ static int msm8x16_wcd_loopback_mode_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+/*OPPO 2015-06-12 zhangping Add for short sound clear*/
+static int hph_speaker_state = 0;
+static int hph_speaker_mode_track_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = hph_speaker_state;
+	return 0;
+}
+
+static int hph_speaker_mode_track_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+       hph_speaker_state = ucontrol->value.integer.value[0];
+	printk("hph_speaker_state = %d\n",hph_speaker_state);
+	
+	return 0;
+}
+
+/*OPPO 2015-06-12 zhangping Add for short sound clear end*/
+
 static int msm8x16_wcd_pa_gain_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
@@ -1595,6 +1663,15 @@ static const struct soc_enum msm8x16_wcd_loopback_mode_ctl_enum[] = {
 		SOC_ENUM_SINGLE_EXT(2, msm8x16_wcd_loopback_mode_ctrl_text),
 };
 
+/*OPPO 2015-06-12 zhangping Add for short sound clear*/
+#ifdef CONFIG_MACH_OPPO
+static const char * const msm8x16_hph_speaker_track[] = {
+		"DISABLE", "ENABLE"};
+static const struct soc_enum msm8x16_wcd_hph_speaker_track_enum[] = {
+		SOC_ENUM_SINGLE_EXT(2, msm8x16_hph_speaker_track),
+};
+#endif
+/*OPPO 2015-06-12 zhangping Add for short sound clear end*/
 static const char * const msm8x16_wcd_ear_pa_boost_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
 static const struct soc_enum msm8x16_wcd_ear_pa_boost_ctl_enum[] = {
@@ -1613,6 +1690,13 @@ static const char * const msm8x16_wcd_boost_option_ctrl_text[] = {
 static const struct soc_enum msm8x16_wcd_boost_option_ctl_enum[] = {
 		SOC_ENUM_SINGLE_EXT(4, msm8x16_wcd_boost_option_ctrl_text),
 };
+
+/*xiang.fei@Multimedia, 2014/09/19, Add for compatible audio*/
+static const struct soc_enum pcb_ver_enum[] = {
+		SOC_ENUM_SINGLE_EXT(5, pcb_ver_text),
+};
+/*xiang.fei@Multimedia, 2014/09/19, Add end*/
+
 static const char * const msm8x16_wcd_spk_boost_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
 static const struct soc_enum msm8x16_wcd_spk_boost_ctl_enum[] = {
@@ -1788,7 +1872,12 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 	SOC_SINGLE_MULTI_EXT("IIR2 Band5", IIR2, BAND5, 255, 0, 5,
 	msm8x16_wcd_get_iir_band_audio_mixer,
 	msm8x16_wcd_put_iir_band_audio_mixer),
-
+	/*OPPO 2015-06-12 zhangping Add for short sound clear*/
+	#ifdef CONFIG_MACH_OPPO
+	SOC_ENUM_EXT("HPH_SPEAKER_MODE_TRACK", msm8x16_wcd_hph_speaker_track_enum[0],
+			hph_speaker_mode_track_get, hph_speaker_mode_track_put),	
+	#endif
+	/*OPPO 2015-06-12 zhangping Add for short sound clear end*/
 };
 
 static int tombak_hph_impedance_get(struct snd_kcontrol *kcontrol,
@@ -2995,13 +3084,9 @@ static int msm8x16_wcd_hph_pa_event(struct snd_soc_dapm_widget *w,
 		if (w->shift == 5) {
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_ANALOG_RX_HPH_L_TEST, 0x04, 0x04);
-			msm8x16_notifier_call(codec,
-					WCD_EVENT_PRE_HPHL_PA_ON);
 		} else if (w->shift == 4) {
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_ANALOG_RX_HPH_R_TEST, 0x04, 0x04);
-			msm8x16_notifier_call(codec,
-					WCD_EVENT_PRE_HPHR_PA_ON);
 		}
 		snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_ANALOG_NCP_FBCTRL, 0x20, 0x20);
@@ -3037,17 +3122,11 @@ static int msm8x16_wcd_hph_pa_event(struct snd_soc_dapm_widget *w,
 				&msm8x16_wcd->mbhc.hph_pa_dac_state);
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_ANALOG_RX_HPH_L_TEST, 0x04, 0x00);
-
-			msm8x16_notifier_call(codec,
-					WCD_EVENT_POST_HPHL_PA_OFF);
 		} else if (w->shift == 4) {
 			clear_bit(WCD_MBHC_HPHR_PA_OFF_ACK,
 				&msm8x16_wcd->mbhc.hph_pa_dac_state);
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_ANALOG_RX_HPH_R_TEST, 0x04, 0x00);
-
-			msm8x16_notifier_call(codec,
-					WCD_EVENT_POST_HPHR_PA_OFF);
 		}
 		usleep_range(4000, 4100);
 
@@ -3114,6 +3193,19 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"RX1 CHAIN", NULL, "RX1 MIX2"},
 	{"RX2 CHAIN", NULL, "RX2 MIX2"},
 	{"RX3 CHAIN", NULL, "RX3 MIX1"},
+	#ifdef CONFIG_MACH_OPPO
+	//John.Xu@PhoneSw.AudioDriver, 2015/02/11, Add for Qcom patch
+	/*Powering down the sidetones path tears down theinterpolator
+	  clock along with it before the rx path isteared down.*/
+	{"RX1 MIX2", NULL, "RX1 MIX1"},
+	#endif /* CONFIG_MACH_OPPO */
+	{"RX1 MIX2", NULL, "RX1 MIX2 INP1"},
+	#ifdef CONFIG_MACH_OPPO
+	//John.Xu@PhoneSw.AudioDriver, 2015/02/11, Add for Qcom patch
+	/*Powering down the sidetones path tears down theinterpolator
+	  clock along with it before the rx path isteared down.*/
+	{"RX2 MIX2", NULL, "RX2 MIX1"},
+	#endif /* CONFIG_MACH_OPPO */
 
 	{"RX1 MIX1", NULL, "RX1 MIX1 INP1"},
 	{"RX1 MIX1", NULL, "RX1 MIX1 INP2"},
@@ -3597,6 +3689,9 @@ static const struct snd_soc_dapm_widget msm8x16_wcd_dapm_widgets[] = {
 	SND_SOC_DAPM_VIRT_MUX("EAR_S", SND_SOC_NOPM, 0, 0,
 		ear_pa_mux),
 
+    SND_SOC_DAPM_SUPPLY("RX1 CLK", MSM8X16_WCD_A_DIGITAL_CDC_DIG_CLK_CTL,
+		0, 0, NULL, 0),
+
 	SND_SOC_DAPM_AIF_IN("I2S RX1", "AIF1 Playback", 0, SND_SOC_NOPM, 0, 0),
 
 	SND_SOC_DAPM_AIF_IN("I2S RX2", "AIF1 Playback", 0, SND_SOC_NOPM, 0, 0),
@@ -3640,7 +3735,30 @@ static const struct snd_soc_dapm_widget msm8x16_wcd_dapm_widgets[] = {
 		spkr_switch, ARRAY_SIZE(spkr_switch)),
 
 	/* Speaker */
+	#ifndef CONFIG_MACH_OPPO
+//John.Xu@PhoneSw.AudioDriver, 2015/02/11, Add for Qcom patch
+/*Powering down the sidetones path tears down theinterpolator
+  clock along with it before the rx path isteared down.*/
+/*
+	SND_SOC_DAPM_MIXER_E("RX1 MIX1",
+			MSM8X16_WCD_A_CDC_CLK_RX_B1_CTL, 0, 0, NULL, 0,
+			msm8x16_wcd_codec_enable_interpolator,
+			SND_SOC_DAPM_POST_PMU |
+			SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_MIXER_E("RX2 MIX1",
+			MSM8X16_WCD_A_CDC_CLK_RX_B1_CTL, 1, 0, NULL, 0,
+			msm8x16_wcd_codec_enable_interpolator,
+			SND_SOC_DAPM_POST_PMU |
+			SND_SOC_DAPM_POST_PMD),
+*/
+#else /* CONFIG_MACH_OPPO */
+	SND_SOC_DAPM_MIXER("RX1 MIX1", SND_SOC_NOPM, 0, 0, NULL, 0),
+	SND_SOC_DAPM_MIXER("RX2 MIX1", SND_SOC_NOPM, 0, 0, NULL, 0),
+#endif /* CONFIG_MACH_OPPO */
 	SND_SOC_DAPM_OUTPUT("SPK_OUT"),
+
+    SND_SOC_DAPM_SUPPLY("RX1 CLK", MSM8X16_WCD_A_DIGITAL_CDC_DIG_CLK_CTL,
+		0, 0, NULL, 0),
 
 	SND_SOC_DAPM_PGA_E("SPK PA", MSM8X16_WCD_A_ANALOG_SPKR_DRV_CTL,
 			6, 0 , NULL, 0, msm8x16_wcd_codec_enable_spk_pa,
@@ -4589,6 +4707,7 @@ static int msm8x16_wcd_spmi_probe(struct spmi_device *spmi)
 			__func__, ret);
 		goto err_supplies;
 	}
+
 	dev_set_drvdata(&spmi->dev, msm8x16);
 
 	ret = snd_soc_register_codec(&spmi->dev, &soc_codec_dev_msm8x16_wcd,
