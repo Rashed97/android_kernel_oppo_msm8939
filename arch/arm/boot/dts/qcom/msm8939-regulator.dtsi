@@ -86,7 +86,10 @@
 		qcom,cpr-fuse-corners = <3>;
 		qcom,cpr-voltage-ceiling = <1050000 1150000 1350000>;
 		qcom,cpr-voltage-floor = <1050000 1050000 1137500>;
-		vdd-apc-supply = <&ncp6335d>;
+		//#ifdef VENDOR_EDIT
+		//Modified by Tong.han@Bsp.group.Tp for power-down by dc-dc (fan53555)
+		vdd-apc-supply = <&fan53555>;
+		//#endif/*VENDOR_EDIT*/
 
 		qcom,vdd-mx-corner-map = <4 5 7>;
 		qcom,vdd-mx-vmin-method = <4>;
