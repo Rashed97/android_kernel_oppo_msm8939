@@ -72,6 +72,7 @@ static void mon_disable(struct bwmon *m)
 static void mon_clear(struct bwmon *m)
 {
 	writel_relaxed(0x1, MON_CLEAR(m));
+	mb();
 }
 
 static void mon_irq_enable(struct bwmon *m)
@@ -83,6 +84,7 @@ static void mon_irq_enable(struct bwmon *m)
 	val |= 1 << m->mport;
 	writel_relaxed(val, GLB_INT_EN(m));
 	spin_unlock(&glb_lock);
+	mb();
 
 	val = readl_relaxed(MON_INT_EN(m));
 	val |= 0x1;
@@ -99,6 +101,7 @@ static void mon_irq_disable(struct bwmon *m)
 	val &= ~(1 << m->mport);
 	writel_relaxed(val, GLB_INT_EN(m));
 	spin_unlock(&glb_lock);
+	mb();
 
 	val = readl_relaxed(MON_INT_EN(m));
 	val &= ~0x1;

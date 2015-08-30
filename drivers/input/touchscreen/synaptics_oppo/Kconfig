@@ -1,0 +1,8 @@
+config TOUCHSCREEN_SYNAPTICS_OPPO
+	bool "Synaptics touchscreen"
+	default y
+	help
+	  Say Y here if you have a Synaptics touchscreen connected
+	  to your system.
+
+	  If unsure, say N.
