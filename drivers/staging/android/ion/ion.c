@@ -473,8 +473,16 @@ static int ion_handle_add(struct ion_client *client, struct ion_handle *handle)
 			p = &(*p)->rb_left;
 		else if (handle->buffer > entry->buffer)
 			p = &(*p)->rb_right;
-		else
+        #ifndef CONFIG_MACH_OPPO 
+        //Liuli@EXP.SysFramework.Framework, 2015/07/02, Modify for quickboot error and blocked in charge picture, this is a QC patch
+        else
 			WARN(1, "%s: buffer already found.", __func__);
+        #else /* CONFIG_MACH_OPPO */
+        else {
+            WARN(1, "%s: buffer already found.", __func__);
+            break;
+        }
+        #endif /* CONFIG_MACH_OPPO */ 
 	}
 
 	rb_link_node(&handle->node, parent, p);

@@ -39,6 +39,12 @@ dtb-$(CONFIG_ARCH_MSM8909) += msm8909-sim.dtb \
 	msm8909-1gb-qrd-skua.dtb \
 	msm8909-1gb-cdp.dtb \
 	msm8909-1gb-mtp.dtb
+ifeq ($(CONFIG_MACH_OPPO),y)
+dtb-$(CONFIG_ARCH_MSM8916) += msm8939-mtp-15011.dtb \
+	msm8939-mtp-15018.dtb \
+	msm8939-v3.0-mtp-15011.dtb \
+	msm8939-v3.0-mtp-15018.dtb
+else
 dtb-$(CONFIG_ARCH_MSM8916) += msm8916-sim.dtb \
 	msm8916-rumi.dtb \
 	msm8916-cdp.dtb \
@@ -94,7 +100,7 @@ dtb-$(CONFIG_ARCH_MSM8916) += msm8916-sim.dtb \
 	msm8939_bc-mtp-jdi-smb1360.dtb \
 	msm8939_bc-mtp-wcd9306-smb1360.dtb \
 	msm8939_bc-cdp-jdi.dtb
-
+endif
 dtb-$(CONFIG_ARCH_MSM8226) += msm8226-sim.dtb \
 	msm8226-fluid.dtb \
 	msm8226-v1-cdp.dtb \
