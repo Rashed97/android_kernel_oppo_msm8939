@@ -195,6 +195,10 @@ struct uart_port {
 	unsigned char		irq_wake;
 	unsigned char		unused[2];
 	void			*private_data;		/* generic platform data pointer */
+#ifdef CONFIG_MACH_OPPO
+//xuanzhi.qin@Swdp.Android.kernel, 2015/01/14, add for  no console suspend
+	bool is_suspending;
+#endif /*CONFIG_MACH_OPPO*/
 };
 
 static inline int serial_port_in(struct uart_port *up, int offset)
