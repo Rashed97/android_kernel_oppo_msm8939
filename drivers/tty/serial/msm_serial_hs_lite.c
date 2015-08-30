@@ -53,6 +53,10 @@
 #include <linux/msm-bus.h>
 #include "msm_serial_hs_hwreg.h"
 
+#ifdef CONFIG_MACH_OPPO //Tong.han@BSP.group.TP, Modify for selct console config for diffrent scene,2014/12/23
+#include <soc/oppo/boot_mode.h>
+#endif /* CONFIG_MACH_OPPO */
+
 /*
  * There are 3 different kind of UART Core available on MSM.
  * High Speed UART (i.e. Legacy HSUART), GSBI based HSUART
@@ -1823,9 +1827,13 @@ static int msm_serial_hsl_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, port);
 	pm_runtime_enable(port->dev);
 #ifdef CONFIG_SERIAL_MSM_HSL_CONSOLE
-	ret = device_create_file(&pdev->dev, &dev_attr_console);
-	if (unlikely(ret))
-		pr_err("Can't create console attribute\n");
+#ifdef CONFIG_MACH_OPPO //Tong.han@BSP.group.TP, Modify for selct console config for diffrent scene,2014/12/23
+	if(get_boot_mode() != MSM_BOOT_MODE__NORMAL) {
+		ret = device_create_file(&pdev->dev, &dev_attr_console);
+		if (unlikely(ret))
+			pr_err("Can't create console attribute\n");
+	}
+#endif
 #endif
 	msm_hsl_debugfs_init(msm_hsl_port, get_line(pdev));
 	mutex_init(&msm_hsl_port->clk_mutex);
@@ -1856,7 +1864,10 @@ static int msm_serial_hsl_remove(struct platform_device *pdev)
 
 	port = get_port_from_line(get_line(pdev));
 #ifdef CONFIG_SERIAL_MSM_HSL_CONSOLE
-	device_remove_file(&pdev->dev, &dev_attr_console);
+#ifdef CONFIG_MACH_OPPO //Tong.han@BSP.group.TP, Modify for selct console config for diffrent scene,2014/12/23
+	if(get_boot_mode() != MSM_BOOT_MODE__NORMAL)
+		device_remove_file(&pdev->dev, &dev_attr_console);
+#endif/*CONFIG_MACH_OPPO*/
 #endif
 	pm_runtime_put_sync(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
@@ -1867,7 +1878,6 @@ static int msm_serial_hsl_remove(struct platform_device *pdev)
 	device_set_wakeup_capable(&pdev->dev, 0);
 	platform_set_drvdata(pdev, NULL);
 	mutex_destroy(&msm_hsl_port->clk_mutex);
-	uart_remove_one_port(&msm_hsl_uart_driver, port);
 
 	clk_put(msm_hsl_port->pclk);
 	clk_put(msm_hsl_port->clk);
@@ -1877,6 +1887,30 @@ static int msm_serial_hsl_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
+
+#ifdef CONFIG_MACH_OPPO
+//xuanzhi.qin@Swdp.Android.kernel, 2015/01/14, add for  no console suspend
+static int msm_hsl_prepare(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+
+	struct uart_port *up = get_port_from_line(get_line(pdev));
+	dev_dbg(dev, "msm_hsl_prepare: suspend prepare\n");
+	up->is_suspending = true;
+
+	return 0;
+}
+
+static void msm_hsl_complete(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+
+	struct uart_port *up = get_port_from_line(get_line(pdev));
+	dev_dbg(dev, "msm_hsl_complete: suspend exit\n");
+	up->is_suspending = false;
+}
+#endif /* CONFIG_MACH_OPPO */
+
 static int msm_serial_hsl_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -1884,6 +1918,15 @@ static int msm_serial_hsl_suspend(struct device *dev)
 	port = get_port_from_line(get_line(pdev));
 
 	if (port) {
+
+		#ifdef CONFIG_MACH_OPPO
+		//xuanzhi.qin@Swdp.Android.kernel, 2015/01/14, add for  no console suspend
+		if (port->is_suspending && !console_suspend_enabled
+			&& is_console(port)) {
+			dev_dbg(dev, "disable console suspend and return\n");
+			return -EBUSY;
+		}
+		#endif /*  CONFIG_MACH_OPPO */
 
 		if (is_console(port))
 			msm_hsl_deinit_clock(port);
@@ -1946,6 +1989,11 @@ static struct dev_pm_ops msm_hsl_dev_pm_ops = {
 	.resume = msm_serial_hsl_resume,
 	.runtime_suspend = msm_hsl_runtime_suspend,
 	.runtime_resume = msm_hsl_runtime_resume,
+#if defined(CONFIG_PM) && defined(CONFIG_MACH_OPPO)
+//xuanzhi.qin@Swdp.Android.kernel, 2015/01/14, add for no console suspend
+	.prepare		 = msm_hsl_prepare,
+	.complete		 = msm_hsl_complete,
+#endif /* CONFIG_PM && CONFIG_MACH_OPPO*/
 };
 
 static struct platform_driver msm_hsl_platform_driver = {
@@ -1983,9 +2031,12 @@ static int __init msm_serial_hsl_init(void)
 static void __exit msm_serial_hsl_exit(void)
 {
 	debugfs_remove_recursive(debug_base);
+#ifdef CONFIG_MACH_OPPO //Tong.han@BSP.group.TP, Modify for selct console config for diffrent scene,2014/12/23
 #ifdef CONFIG_SERIAL_MSM_HSL_CONSOLE
-	unregister_console(&msm_hsl_console);
+	if(get_boot_mode() != MSM_BOOT_MODE__NORMAL)
+		unregister_console(&msm_hsl_console);
 #endif
+#endif/*CONFIG_MACH_OPPO*/
 	platform_driver_unregister(&msm_hsl_platform_driver);
 	uart_unregister_driver(&msm_hsl_uart_driver);
 }
