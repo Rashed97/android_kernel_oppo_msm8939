@@ -71,6 +71,3 @@ obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
 obj-$(CONFIG_QCOM_LIQUID_DOCK)	+= qcom_liquid_dock.o
 obj-y				+= qcom/
 obj-y += remote/
-# ifdef VENDOR_EDIT //Tong.han@BSP.Group.Tp, 2015/04/05, Add for KTD breath led
-obj-$(CONFIG_KTD2026_SLED)  += ktd_shineled/
-# endif
