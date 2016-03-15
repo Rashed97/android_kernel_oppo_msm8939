@@ -374,8 +374,14 @@ int pil_mss_reset_load_mba(struct pil_desc *pil)
 	}
 
 	drv->mba_size = SZ_1M;
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	if (drv->mba_region)
+		md->mba_mem_dev = *(pil->dev);
+	else
 	md->mba_mem_dev.coherent_dma_mask =
 		DMA_BIT_MASK(sizeof(dma_addr_t) * 8);
+#endif	
 	mba_virt = dma_alloc_coherent(&md->mba_mem_dev, drv->mba_size,
 					&mba_phys, GFP_KERNEL);
 	if (!mba_virt) {
@@ -420,8 +426,14 @@ static int pil_msa_auth_modem_mdt(struct pil_desc *pil, const u8 *metadata,
 	s32 status;
 	int ret;
 
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	if (drv->q6->mba_region)
+		drv->mba_mem_dev = *(pil->dev);
+	else
 	drv->mba_mem_dev.coherent_dma_mask =
 		DMA_BIT_MASK(sizeof(dma_addr_t) * 8);
+#endif			
 	/* Make metadata physically contiguous and 4K aligned. */
 	mdata_virt = dma_alloc_coherent(&drv->mba_mem_dev, size, &mdata_phys,
 					GFP_KERNEL);

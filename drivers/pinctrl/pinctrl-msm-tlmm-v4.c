@@ -584,6 +584,7 @@ static irqreturn_t msm_tlmm_v4_gp_handle_irq(int irq,
 			virq = msm_tlmm_v4_gp_to_irq(gc, i);
 			if (!virq) {
 				dev_dbg(ic->dev, "invalid virq\n");
+				//dev_err(ic->dev, "invalid virq\n");
 				return IRQ_NONE;
 			}
 			generic_handle_irq(virq);

@@ -94,7 +94,7 @@ void sync_timeline_destroy(struct sync_timeline *obj)
 
 	/*
 	 * If this is not the last reference, signal any children
-	 * that their parent is going away.
+	 * signal any children that their parent is going away.
 	 */
 
 	if (!kref_put(&obj->kref, sync_timeline_free))

@@ -755,7 +755,15 @@ static int subsys_shutdown(const struct subsys_desc *subsys, bool force_stop)
 	pil_shutdown(&d->desc);
 	return 0;
 }
-
+#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch for 3G ram in 20150303*/
+static int subsys_freeup(const struct subsys_desc *subsys)
+{
+	struct pil_tz_data *d = subsys_to_data(subsys);
+	pil_shutdown(&d->desc);
+	return 0;
+}
+#endif
 static int subsys_powerup(const struct subsys_desc *subsys)
 {
 	struct pil_tz_data *d = subsys_to_data(subsys);
@@ -895,6 +903,10 @@ static int pil_tz_driver_probe(struct platform_device *pdev)
 	d->subsys_desc.shutdown = subsys_shutdown;
 	d->subsys_desc.powerup = subsys_powerup;
 	d->subsys_desc.ramdump = subsys_ramdump;
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	d->subsys_desc.freeup = subsys_freeup;
+#endif
 	d->subsys_desc.crash_shutdown = subsys_crash_shutdown;
 	d->subsys_desc.err_fatal_handler = subsys_err_fatal_intr_handler;
 	d->subsys_desc.wdog_bite_handler = subsys_wdog_bite_irq_handler;

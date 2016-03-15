@@ -478,7 +478,14 @@ static void subsystem_ramdump(struct subsys_device *dev, void *data)
 			pr_warn("%s[%p]: Ramdump failed.\n", name, current);
 	dev->do_ramdump_on_put = false;
 }
-
+#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch for 3G ram in 20150303*/
+static void subsystem_freeup(struct subsys_device *dev, void *data)
+{
+	if (dev->desc->freeup)
+		dev->desc->freeup(dev->desc);
+}
+#endif
 static void subsystem_powerup(struct subsys_device *dev, void *data)
 {
 	const char *name = dev->desc->name;
@@ -730,7 +737,11 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 
 	/* Collect ram dumps for all subsystems in order here */
 	for_each_subsys_device(list, count, NULL, subsystem_ramdump);
-
+	
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	for_each_subsys_device(list, count, NULL, subsystem_freeup);
+#endif	
 	notify_each_subsys_device(list, count, SUBSYS_BEFORE_POWERUP, NULL);
 	for_each_subsys_device(list, count, NULL, subsystem_powerup);
 	notify_each_subsys_device(list, count, SUBSYS_AFTER_POWERUP, NULL);

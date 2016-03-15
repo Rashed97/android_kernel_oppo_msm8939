@@ -50,6 +50,12 @@
 
 extern const u8 msm8x16_wcd_reg_readable[MSM8X16_WCD_CACHE_SIZE];
 extern const u8 msm8x16_wcd_reg_readonly[MSM8X16_WCD_CACHE_SIZE];
+#ifdef VENDOR_EDIT
+//John.Xu@PhoneSw.AudioDriver, 2015/02/10, Add for 14037 pmic special patch
+//merged John.Xu@PhoneSw.AudioDriver, 2014/12/20, Add for Qcom pmic patch
+//Use internal boost for external speaker PA
+extern const u8 msm8x16_wcd_reg_readonly_14037[MSM8X16_WCD_CACHE_SIZE];
+#endif /* VENDOR_EDIT */
 extern const u8 msm8x16_wcd_reset_reg_defaults[MSM8X16_WCD_CACHE_SIZE];
 
 enum msm8x16_wcd_pid_current {
@@ -157,6 +163,22 @@ struct msm8916_asoc_mach_data {
 	struct mutex cdc_mclk_mutex;
 	struct delayed_work disable_mclk_work;
 	struct afe_digital_clk_cfg digital_cdc_clk;
+	/*OPPO 2014-10-16 zhzhyon Add for quat and sec i2s patch*/
+	void __iomem *vaddr_gpio_mux_spkr_ctl;
+	void __iomem *vaddr_gpio_mux_mic_ctl;
+	/*OPPO 2014-10-16 zhzhyon Add end*/
+	/*OPPO 2014-07-24 zhzhyon Add for tfa9890*/
+	int audio_vdd_en_gpio;
+	int spk_rec_sw;
+	int tfa9890_rst;
+	/*OPPO 2014-07-24 zhzhyon Add end*/
+	/*xiang.fei@Multimedia, 2014/09/10, Add for yda145*/
+    int spk_pa_en;
+	/*xiang.fei@Multimedia, 2014/09/10, Add end*/
+	#ifdef VENDOR_EDIT
+	//John.Xu@PhoneSw.AudioDriver, 2015/01/09, Add for 15005 yda145 boost
+    int yda145_boost_en;
+	#endif /* VENDOR_EDIT */
 };
 
 struct msm8x16_wcd_pdata {
@@ -193,6 +215,13 @@ struct msm8x16_wcd {
 	int num_irqs;
 	u32 mclk_rate;
 	char __iomem *dig_base;
+
+	/*xiang.fei@Multimedia, 2014/09/19, Add for compatible audio*/
+	int pcb_ver_flag0;
+	int pcb_ver_flag1;
+	int pcb_ver_flag2;
+	char pcb_ver_string[10]; //add by John.Xu for pcb_ver used in codec
+	/*xiang.fei@Multimedia, 2014/09/19, Add end*/
 };
 
 struct on_demand_supply {
@@ -203,6 +232,9 @@ struct on_demand_supply {
 struct msm8x16_wcd_priv {
 	struct snd_soc_codec *codec;
 	u16 pmic_rev;
+#ifdef VENDOR_EDIT //Jianfeng.Qiu@Multimedia, 2014/10/28, Add for boost voltage
+	u32 boost_voltage;
+#endif /* VENDOR_EDIT */
 	u32 adc_count;
 	u32 rx_bias_count;
 	s32 dmic_1_2_clk_cnt;
@@ -210,6 +242,7 @@ struct msm8x16_wcd_priv {
 	bool mclk_enabled;
 	bool clock_active;
 	bool config_mode_active;
+	u16 boost_option;
 	bool spk_boost_set;
 	bool ear_pa_boost_set;
 	bool dec_active[NUM_DECIMATORS];

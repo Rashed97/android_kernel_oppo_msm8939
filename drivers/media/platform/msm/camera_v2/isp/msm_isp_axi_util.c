@@ -24,7 +24,7 @@
 
 #define MSM_ISP_MIN_AB 450000000
 #define MSM_ISP_MIN_IB 900000000
-
+int print_num =0;
 int msm_isp_axi_create_stream(
 	struct msm_vfe_axi_shared_data *axi_data,
 	struct msm_vfe_axi_stream_request_cmd *stream_cfg_cmd)
@@ -889,7 +889,7 @@ buf_error:
 }
 
 static inline void msm_isp_get_avtimer_ts(
-		struct msm_isp_timestamp *time_stamp)
+	struct msm_isp_timestamp *time_stamp)
 {
 	int rc = 0;
 	uint32_t avtimer_usec = 0;
@@ -1289,7 +1289,7 @@ static int msm_isp_start_axi_stream(struct vfe_device *vfe_dev,
 	uint32_t wm_reload_mask = 0x0;
 	struct msm_vfe_axi_stream *stream_info;
 	struct msm_vfe_axi_shared_data *axi_data = &vfe_dev->axi_data;
-
+	print_num =5 ;
 	if (stream_cfg_cmd->num_streams > MAX_NUM_STREAM)
 		return -EINVAL;
 

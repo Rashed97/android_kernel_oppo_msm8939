@@ -42,6 +42,15 @@
 #define SCM_DLOAD_CMD			0x10
 
 
+#ifdef VENDOR_EDIT
+//rendong.shi@BasicDrv.bootloader, 2015/03/18, add for recovery can not boot  
+#define RTC_BOOT_MODE  0x88F
+#define RTC_FASTBOOT_MODE 0x01
+#define RTC_RECOVERY_MODE 0x02
+#define RTC_SILENCE_MODE  0x03
+#endif
+
+
 static int restart_mode;
 void *restart_reason;
 static bool scm_pmic_arbiter_disable_supported;
@@ -59,7 +68,11 @@ static void *emergency_dload_mode_addr;
 static bool scm_dload_supported;
 
 static int dload_set(const char *val, struct kernel_param *kp);
+#ifndef VENDOR_EDIT //yixue.ge@bsp.drv modify we should set this value to 0 for mp softversion
 static int download_mode = 1;
+#else
+static int download_mode = 0;
+#endif
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 static int panic_prep_restart(struct notifier_block *this,
@@ -181,8 +194,21 @@ static void halt_spmi_pmic_arbiter(void)
 	}
 }
 
+#ifdef VENDOR_EDIT
+/* OPPO 2013.07.09 hewei modify begin for restart mode*/
+#define FACTORY_MODE	0x77665504
+#define WLAN_MODE		0x77665505
+#define RF_MODE			0x77665506
+#define MOS_MODE		0x77665507
+#define RECOVERY_MODE   0x77665502
+#define FASTBOOT_MODE   0x77665500
+/* OPPO 2013.07.09 hewei modify end for restart mode*/
+#endif //VENDOR_EDIT
+
 static void msm_restart_prepare(const char *cmd)
 {
+	bool need_warm_reset = false;
+
 #ifdef CONFIG_MSM_DLOAD_MODE
 
 	/* Write download mode flags if we're panic'ing
@@ -194,18 +220,42 @@ static void msm_restart_prepare(const char *cmd)
 			(in_panic || restart_mode == RESTART_DLOAD));
 #endif
 
-	/* Hard reset the PMIC unless memory contents must be maintained. */
-	if (get_dload_mode() || (cmd != NULL && cmd[0] != '\0'))
-		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
-	else
-		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
+	need_warm_reset = (get_dload_mode() ||
+					(cmd != NULL && cmd[0] != '\0'));
 
+	if (qpnp_pon_check_hard_reset_stored()) {
+		/* Set warm reset as true when device is in dload mode
+		*  or device doesn't boot up into recovery, bootloader or rtc.
+		*/
+		if (get_dload_mode() ||
+			((cmd != NULL && cmd[0] != '\0') &&
+			strcmp(cmd, "recovery") &&
+			strcmp(cmd, "bootloader") &&
+			strcmp(cmd, "rtc")))
+			need_warm_reset = true;
+	}
+
+	/* Hard reset the PMIC unless memory contents must be maintained. */
+	if (need_warm_reset) {
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+	} else {
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
+	}
+
+#ifndef VENDOR_EDIT
+/* OPPO 2013.07.09 hewei modify begin for restart mode*/
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_BOOTLOADER);
 			__raw_writel(0x77665500, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_RECOVERY);
 			__raw_writel(0x77665502, restart_reason);
 		} else if (!strcmp(cmd, "rtc")) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_RTC);
 			__raw_writel(0x77665503, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
@@ -220,6 +270,38 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x77665501, restart_reason);
 		}
 	}
+#else //VENDOR_EDIT
+	if (cmd != NULL) {
+		if (!strncmp(cmd, "bootloader", 10)) {
+			//__raw_writel(FASTBOOT_MODE, restart_reason);
+			qpnp_silence_write(RTC_BOOT_MODE,RTC_FASTBOOT_MODE);
+		} else if (!strncmp(cmd, "recovery", 8)) {
+			//__raw_writel(RECOVERY_MODE, restart_reason);
+			qpnp_silence_write(RTC_BOOT_MODE,RTC_RECOVERY_MODE);
+		} else if (!strncmp(cmd, "rf", 2)) {
+			__raw_writel(RF_MODE, restart_reason);
+		}   else if (!strncmp(cmd, "wlan", 4)) {
+			__raw_writel(WLAN_MODE, restart_reason);
+		}   else if (!strncmp(cmd, "mos", 3)) {
+			__raw_writel(MOS_MODE, restart_reason);
+		}   else if (!strncmp(cmd, "ftm", 3)) {
+			__raw_writel(FACTORY_MODE, restart_reason);
+		} else if (!strncmp(cmd, "oem-", 4)) {
+			unsigned long code;
+			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
+			__raw_writel(0x6f656d00 | code, restart_reason);
+		} else if (!strncmp(cmd, "kernel", 6)) {
+            __raw_writel(0x7766550a, restart_reason);
+        } else if (!strncmp(cmd, "modem", 5)) {
+            __raw_writel(0x7766550b, restart_reason);
+        } else if (!strncmp(cmd, "android", 7)) {
+            __raw_writel(0x7766550c, restart_reason);
+		} else if (!strncmp(cmd, "edl", 3)) {
+			enable_emergency_dload_mode();
+		}
+	}
+/* OPPO 2013.07.09 hewei modify en for restart mode*/
+#endif //VENDOR_EDIT
 
 	flush_cache_all();
 
@@ -323,6 +405,12 @@ static int msm_restart_probe(struct platform_device *pdev)
 	msm_ps_hold = devm_ioremap_resource(dev, mem);
 	if (IS_ERR(msm_ps_hold))
 		return PTR_ERR(msm_ps_hold);
+
+#ifdef VENDOR_EDIT
+/* OPPO 2013.07.09 hewei added begin for default restart reason*/
+	__raw_writel(0x7766550a, restart_reason);
+/* OPPO 2013.07.09 hewei added end for default restart reason*/
+#endif //VENDOR_EDIT
 
 	pm_power_off = do_msm_poweroff;
 	arm_pm_restart = do_msm_restart;

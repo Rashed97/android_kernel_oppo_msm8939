@@ -78,6 +78,10 @@ struct pil_reset_ops {
 #ifdef CONFIG_MSM_PIL
 extern int pil_desc_init(struct pil_desc *desc);
 extern int pil_boot(struct pil_desc *desc);
+#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch for 3G ram in 20150303*/
+extern void pil_free(struct pil_desc *desc);
+#endif
 extern void pil_shutdown(struct pil_desc *desc);
 extern void pil_desc_release(struct pil_desc *desc);
 extern phys_addr_t pil_get_entry_addr(struct pil_desc *desc);
@@ -85,6 +89,10 @@ extern int pil_do_ramdump(struct pil_desc *desc, void *ramdump_dev);
 #else
 static inline int pil_desc_init(struct pil_desc *desc) { return 0; }
 static inline int pil_boot(struct pil_desc *desc) { return 0; }
+#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch for 3G ram in 20150303*/
+static inline void pil_free(struct pil_desc *desc) { }
+#endif
 static inline void pil_shutdown(struct pil_desc *desc) { }
 static inline void pil_desc_release(struct pil_desc *desc) { }
 static inline phys_addr_t pil_get_entry_addr(struct pil_desc *desc)

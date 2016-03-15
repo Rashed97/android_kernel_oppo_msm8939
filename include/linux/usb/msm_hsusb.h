@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Author: Brian Swetland <swetland@google.com>
- * Copyright (c) 2009-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2015, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -103,6 +103,9 @@ enum msm_usb_phy_type {
 };
 
 #define IDEV_CHG_MAX	1500
+#ifdef VENDOR_EDIT	//Fuchun.Liao@Mobile.BSP.CHG 2014-09-19 add for set 2A current in 14037
+#define IDEV_CHG_MAX_2000MA		2000
+#endif
 #define IDEV_CHG_MIN	500
 #define IUNIT		100
 
@@ -356,6 +359,7 @@ struct msm_otg_platform_data {
  * @in_lpm: indicates low power mode (LPM) state.
  * @async_int: IRQ line on which ASYNC interrupt arrived in LPM.
  * @cur_power: The amount of mA available from downstream port.
+ * @otg_wq: Strict order otg workqueue for OTG works (SM/ID/SUSPEND).
  * @chg_work: Charger detection work.
  * @chg_state: The state of charger detection process.
  * @chg_type: The type of charger attached.
@@ -426,6 +430,7 @@ struct msm_otg {
 	atomic_t set_fpr_with_lpm_exit;
 	int async_int;
 	unsigned cur_power;
+	struct workqueue_struct *otg_wq;
 	struct delayed_work chg_work;
 	struct delayed_work id_status_work;
 	struct delayed_work suspend_work;
@@ -494,6 +499,8 @@ struct msm_otg {
 	unsigned int voltage_max;
 	unsigned int current_max;
 	unsigned int usbin_health;
+	//lfc add for otg switch
+	bool	otg_switch;
 
 	dev_t ext_chg_dev;
 	struct cdev ext_chg_cdev;
@@ -503,10 +510,19 @@ struct msm_otg {
 	bool ext_chg_active;
 	struct completion ext_chg_wait;
 	struct pinctrl *phy_pinctrl;
+	//lfc add for otg switch
+	struct pinctrl_state *usb_id_pinctrl_default;
+	struct pinctrl_state *usb_id_pinctrl_active;
+	struct pinctrl_state *usb_id_pinctrl_sleep;
 	int ui_enabled;
 	bool pm_done;
 	struct qpnp_vadc_chip	*vadc_dev;
 	int ext_id_irq;
+	wait_queue_head_t      host_suspend_wait;
+    #ifdef VENDOR_EDIT
+    /*chaoying.chen@EXP.BaseDrv.otg,2014/12/09 Added for 14061 otg */
+    struct mutex otg_mutex_lock;
+    #endif /*VENDOR_EDIT*/
 };
 
 struct ci13xxx_platform_data {
@@ -695,3 +711,11 @@ static inline int msm_dwc3_reset_dbm_ep(struct usb_ep *ep)
 
 #endif
 #endif
+
+#ifdef VENDOR_EDIT
+/*chaoying.chen@EXP.BaseDrv.otg,2014/12/09  Added for 14061 otg */
+extern void oppo_otg_id_status(int id_state);
+extern void oppo_headset_detect_plug(int status);
+extern atomic_t otg_id_state;
+extern atomic_t headset_status;
+#endif /*VENDOR_EDIT*/

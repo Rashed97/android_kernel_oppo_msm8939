@@ -94,8 +94,11 @@ struct mdss_panel_cfg {
 	bool init_done;
 };
 
-struct mdss_panel_recovery {
-	void (*fxn)(void *ctx);
+#define MDP_INTF_DSI_CMD_FIFO_UNDERFLOW		0x0001
+#define MDP_INTF_DSI_VIDEO_FIFO_OVERFLOW	0x0002
+
+struct mdss_intf_recovery {
+	void (*fxn)(void *ctx, int event);
 	void *data;
 };
 
@@ -140,6 +143,8 @@ struct mdss_panel_recovery {
  *				based on the dsi mode passed as argument.
  *				- 0: update to video mode
  *				- 1: update to command mode
+ * @MDSS_EVENT_REGISTER_RECOVERY_HANDLER: Event to recover the interface in
+ *					case there was any errors detected.
  */
 enum mdss_intf_events {
 	MDSS_EVENT_RESET = 1,
@@ -159,6 +164,7 @@ enum mdss_intf_events {
 	MDSS_EVENT_DSI_CMDLIST_KOFF,
 	MDSS_EVENT_ENABLE_PARTIAL_UPDATE,
 	MDSS_EVENT_DSI_DYNAMIC_SWITCH,
+	MDSS_EVENT_REGISTER_RECOVERY_HANDLER,
 };
 
 struct lcd_panel_info {
@@ -330,6 +336,10 @@ struct mdss_panel_info {
 	int pwm_period;
 	bool dynamic_fps;
 	bool ulps_feature_enabled;
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/08  Add for video mode ulps */
+	bool ulps_suspend_enabled;
+#endif /*VENDOR_EDIT*/
 	bool esd_check_enabled;
 	char dfps_update;
 	int new_fps;
@@ -342,6 +352,8 @@ struct mdss_panel_info {
 	u32 height_pix_align;
 	u32 min_width;
 	u32 min_height;
+	u32 min_fps;
+	u32 max_fps;
 
 	u32 cont_splash_enabled;
 	u32 partial_update_enabled;
@@ -352,6 +364,10 @@ struct mdss_panel_info {
 	u32 panel_orientation;
 	bool dynamic_switch_pending;
 	bool is_lpm_mode;
+//#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/07/21  Add for LCD rotate 180 degree */
+	bool is_panel_inverted;
+//#endif /*VENDOR_EDIT*/
 
 	struct mdss_mdp_pp_tear_check te;
 

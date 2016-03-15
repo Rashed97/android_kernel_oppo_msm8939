@@ -81,3 +81,17 @@ obj-$(CONFIG_ARCH_MSM8974) += msm_mpmctr.o
 
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 obj-$(CONFIG_PERFMAP) += perfmap.o
+
+# geyixue@BSP.Driver, 2014/07/29, Add for OPPO device info
+obj-$(CONFIG_OPPO_DEVICE_IFNO)	+= device_info.o
+# endif /* VENDOR_EDIT */
+
+#ifdef VENDOR_EDIT 
+#Tong.han@BSP.group.TP, 2014/12/25, Add for OPPO trace
+obj-$(CONFIG_OPPO_DEBUG_ASSERT)	+=  oppo_trace.o
+#endif /* VENDOR_EDIT */
+
+# ifdef VENDOR_EDIT 
+# geyixue@BSP.Driver, 2014/07/29, Add for OPPO device info
+obj-$(CONFIG_OPPO_COMMON_SOFT)	+=  oppo_project.o
+# endif /* VENDOR_EDIT */

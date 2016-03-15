@@ -26,6 +26,22 @@
 #include "mdss_panel.h"
 #include "mdss_dsi.h"
 #include "mdss_debug.h"
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/08/27  Add for 14045 LCD */
+#include <mach/oppo_project.h>
+/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+extern void opchg_check_lcd_on(void);
+extern void opchg_check_lcd_off(void);
+
+extern int lcd_dev;
+
+#endif /*VENDOR_EDIT*/
+
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/14  Add for 14045 ESD test */
+struct regulator *vdddc_3v3 = NULL;
+struct regulator *vddf_2v5 = NULL;
+#endif /*VENDOR_EDIT*/
 
 static int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 					bool active);
@@ -59,7 +75,10 @@ static int mdss_dsi_regulator_init(struct platform_device *pdev)
 
 	return rc;
 }
-
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/14  Add for 14045 ESD test */
+extern bool te_reset_14045;
+#endif /*VENDOR_EDIT*/
 static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 {
 	int ret = 0;
@@ -84,6 +103,26 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 		return 0;
 
 	if (enable) {
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/14  Add for 14045 ESD test */
+		if((is_project(OPPO_14045)||is_project(OPPO_14051)) && vdddc_3v3!=NULL && vddf_2v5!=NULL && te_reset_14045 == 1){
+			pr_err("vdddc_3v3 enable");
+			//regulator_set_voltage(vdddc_3v3,3300000,3300000);
+			regulator_set_optimum_mode(vdddc_3v3,100000);
+			ret = regulator_enable(vdddc_3v3);
+			mdelay(2);
+			if (ret){
+				pr_err("vdddc_3v3 enable error ret = %d\n",ret);
+			}
+			pr_err("vddf_2v5 enable");
+			//regulator_set_voltage(vdddc_3v3,3300000,3300000);
+			regulator_set_optimum_mode(vddf_2v5,100000);
+			ret = regulator_enable(vddf_2v5);
+			if (ret){
+				pr_err("vddf_2v5 enable error ret = %d\n",ret);
+			}
+		}
+#endif /*VENDOR_EDIT*/
 		for (i = 0; i < DSI_MAX_PM; i++) {
 			/*
 			 * Core power module will be enabled when the
@@ -100,8 +139,20 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 				goto error_enable;
 			}
 		}
-
+		
+		/* 
+		 * If the panel is already on (as part of the cont splash 
+		 * screen feature), then we need to request all the GPIOs that 
+		 * have already been configured in the bootloader. This needs 
+		 * to be done irresepective of whether the lp11_init flag is 
+		 * set or not. 
+		 */ 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for lcd lp11 init */
 		if (!pdata->panel_info.mipi.lp11_init) {
+#else /*VENDOR_EDIT*/
+		if (pdata->panel_info.panel_power_on || !pdata->panel_info.mipi.lp11_init) {
+#endif /*VENDOR_EDIT*/
 			if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
 				pr_debug("reset enable: pinctrl not enabled\n");
 
@@ -119,8 +170,23 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 					__func__, ret);
 			goto error;
 		}
+#ifdef VENDOR_EDIT
+//guoling@MM.lcddriver 2014-08-14 add 14043 for power off seq.
+/*Yongpeng.Yi@PhoneSW.Multimedia 2015-02-03 add for 15005 power off seq.*/
+		if(is_project(OPPO_14043) || is_project(OPPO_15005)||is_project(OPPO_15025)){
+			msleep(110);
+		}
+#endif
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/09/15  Modify for 14045 LCD */
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 			pr_debug("reset disable: pinctrl not enabled\n");
+#else /*VENDOR_EDIT*/
+		if(!(is_project(OPPO_14045)||is_project(OPPO_14051))){
+			if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
+			pr_debug("reset disable: pinctrl not enabled\n");
+		}
+#endif /*VENDOR_EDIT*/
 
 		for (i = DSI_MAX_PM - 1; i >= 0; i--) {
 			/*
@@ -136,6 +202,24 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 				pr_err("%s: failed to disable vregs for %s\n",
 					__func__, __mdss_dsi_pm_name(i));
 		}
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/14  Add for 14045 ESD test */
+		if((is_project(OPPO_14045)||is_project(OPPO_14051)) && vdddc_3v3!=NULL && vddf_2v5!=NULL && te_reset_14045 == 1){
+			pr_err("vddf_2v5 disable");
+			regulator_set_optimum_mode(vddf_2v5,100);
+			ret = regulator_disable(vddf_2v5);
+			if (ret){
+				pr_err("vddf_2v5 disable error ret = %d\n",ret);
+			}
+			mdelay(2);
+			pr_err("vdddc_3v3 disable");
+			regulator_set_optimum_mode(vdddc_3v3,100);
+			ret = regulator_disable(vdddc_3v3);
+			if (ret){
+				pr_err("vdddc_3v3 disable error ret = %d\n",ret);
+			}
+		}
+#endif /*VENDOR_EDIT*/
 	}
 
 error_enable:
@@ -365,6 +449,13 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata)
 		return -EINVAL;
 	}
 
+#ifdef VENDOR_EDIT
+	/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+	if(is_project(OPPO_14045) || is_project(OPPO_15005)|| is_project(OPPO_15011))
+	{
+		opchg_check_lcd_off();
+	}
+#endif
 	if (!pdata->panel_info.panel_power_on) {
 		pr_warn("%s:%d Panel already off.\n", __func__, __LINE__);
 		return 0;
@@ -381,12 +472,23 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata)
 
 	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
-
+	
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 	/* disable DSI controller */
 	mdss_dsi_controller_cfg(0, pdata);
 
 	/* disable DSI phy */
 	mdss_dsi_phy_disable(ctrl_pdata);
+#else /*VENDOR_EDIT*/
+	if (!pdata->panel_info.ulps_suspend_enabled) {
+		/* disable DSI controller */
+		mdss_dsi_controller_cfg(0, pdata);
+
+		/* disable DSI phy */
+		mdss_dsi_phy_disable(ctrl_pdata);
+	}
+#endif /*VENDOR_EDIT*/
 
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
 
@@ -406,7 +508,12 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata)
 	return ret;
 }
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
+#else /*VENDOR_EDIT*/
+void mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
+#endif /*VENDOR_EDIT*/
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_panel_info *pinfo;
@@ -498,6 +605,109 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 	}
 }
 
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Add for video mode ulps */
+int mdss_dsi_clamp_ctrl(struct mdss_dsi_ctrl_pdata *ctrl, int enable)
+{
+	struct mipi_panel_info *mipi = NULL;
+	u32 clamp_reg, regval = 0;
+	u32 clamp_reg_off, phyrst_reg_off;
+
+	if (!ctrl) {
+		pr_err("%s: invalid input\n", __func__);
+		return -EINVAL;
+	}
+
+	if (!ctrl->mmss_misc_io.base) {
+		pr_err("%s: mmss_misc_io not mapped\nn", __func__);
+		return -EINVAL;
+	}
+
+	clamp_reg_off = ctrl->ulps_clamp_ctrl_off;
+	phyrst_reg_off = ctrl->ulps_phyrst_ctrl_off;
+	mipi = &ctrl->panel_data.panel_info.mipi;
+
+	/* clock lane will always be clamped */
+	clamp_reg = BIT(9);
+	if (ctrl->ulps)
+		clamp_reg |= BIT(8);
+	/* make a note of all active data lanes which need to be clamped */
+	if (mipi->data_lane0) {
+		clamp_reg |= BIT(7);
+		if (ctrl->ulps)
+			clamp_reg |= BIT(6);
+	}
+	if (mipi->data_lane1) {
+		clamp_reg |= BIT(5);
+		if (ctrl->ulps)
+			clamp_reg |= BIT(4);
+	}
+	if (mipi->data_lane2) {
+		clamp_reg |= BIT(3);
+		if (ctrl->ulps)
+			clamp_reg |= BIT(2);
+	}
+	if (mipi->data_lane3) {
+		clamp_reg |= BIT(1);
+		if (ctrl->ulps)
+			clamp_reg |= BIT(0);
+	}
+	pr_debug("%s: called for ctrl%d, enable=%d, clamp_reg=0x%08x\n",
+		__func__, ctrl->ndx, enable, clamp_reg);
+	if (enable && !ctrl->mmss_clamp) {
+		/* Enable MMSS DSI Clamps */
+		if (ctrl->ndx == DSI_CTRL_0) {
+			regval = MIPI_INP(ctrl->mmss_misc_io.base +
+				clamp_reg_off);
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval | clamp_reg);
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval | (clamp_reg | BIT(15)));
+		} else if (ctrl->ndx == DSI_CTRL_1) {
+			regval = MIPI_INP(ctrl->mmss_misc_io.base +
+				clamp_reg_off);
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval | (clamp_reg << 16));
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval | ((clamp_reg << 16) | BIT(31)));
+		}
+
+		/*
+		 * This register write ensures that DSI PHY will not be
+		 * reset when mdss ahb clock reset is asserted while coming
+		 * out of power collapse
+		 */
+		MIPI_OUTP(ctrl->mmss_misc_io.base + phyrst_reg_off, 0x1);
+		ctrl->mmss_clamp = true;
+	} else if (!enable && ctrl->mmss_clamp) {
+		MIPI_OUTP(ctrl->mmss_misc_io.base + phyrst_reg_off, 0x0);
+		/* Disable MMSS DSI Clamps */
+		if (ctrl->ndx == DSI_CTRL_0) {
+			regval = MIPI_INP(ctrl->mmss_misc_io.base +
+				clamp_reg_off);
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval & ~(clamp_reg | BIT(15)));
+		} else if (ctrl->ndx == DSI_CTRL_1) {
+			regval = MIPI_INP(ctrl->mmss_misc_io.base +
+				clamp_reg_off);
+			MIPI_OUTP(ctrl->mmss_misc_io.base + clamp_reg_off,
+				regval & ~((clamp_reg << 16) | BIT(31)));
+		}
+		ctrl->mmss_clamp = false;
+	} else {
+		pr_debug("%s: No change requested: %s -> %s\n", __func__,
+			ctrl->mmss_clamp ? "enabled" : "disabled",
+			enable ? "enabled" : "disabled");
+	}
+
+	return 0;
+
+}
+#endif /*VENDOR_EDIT*/
+
+
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 int mdss_dsi_ulps_config(struct mdss_dsi_ctrl_pdata *ctrl_pdata, int enable)
 {
 	int ret = 0;
@@ -668,6 +878,123 @@ int mdss_dsi_ulps_config(struct mdss_dsi_ctrl_pdata *ctrl_pdata, int enable)
 error:
 	return ret;
 }
+#else /*VENDOR_EDIT*/
+int mdss_dsi_ulps_config(struct mdss_dsi_ctrl_pdata *ctrl_pdata, int enable)
+{
+	int ret = 0;
+	struct mdss_panel_data *pdata = NULL;
+	struct mdss_panel_info *pinfo;
+	struct mipi_panel_info *mipi;
+	u32 lane_status = 0;
+	u32 active_lanes = 0;
+
+	if (!ctrl_pdata) {
+		pr_err("%s: invalid input\n", __func__);
+		return -EINVAL;
+	}
+
+	if (&ctrl_pdata->mmss_misc_io == NULL) {
+		pr_err("%s: mmss_misc_io is NULL. ULPS not valid\n", __func__);
+		return -EINVAL;
+	}
+
+	pdata = &ctrl_pdata->panel_data;
+	if (!pdata) {
+		pr_err("%s: Invalid panel data\n", __func__);
+		return -EINVAL;
+	}
+	pinfo = &pdata->panel_info;
+	mipi = &pinfo->mipi;
+
+	if (!mdss_dsi_ulps_feature_enabled(pdata)
+			&& !pinfo->ulps_suspend_enabled) {
+		pr_err("%s: ULPS feature not supported. enable=%d\n",
+			__func__, enable);
+		return -ENOTSUPP;
+	}
+
+	/*
+	 * No need to enter ULPS when transitioning from splash screen to
+	 * boot animation since it is expected that the clocks would be turned
+	 * right back on.
+	 */
+	if (pinfo->cont_splash_enabled) {
+		pr_debug("%s: skip ULPS config with splash screen enabled\n",
+			__func__);
+		return 0;
+	}
+
+	/* clock lane will always be programmed for ulps and will be clamped */
+	active_lanes = BIT(4);
+	/*
+	 * make a note of all active data lanes for which ulps entry/exit
+	 * as well as DSI clamps are needed
+	 */
+	if (mipi->data_lane0) {
+		active_lanes |= BIT(0);
+	}
+	if (mipi->data_lane1) {
+		active_lanes |= BIT(1);
+	}
+	if (mipi->data_lane2) {
+		active_lanes |= BIT(2);
+	}
+	if (mipi->data_lane3) {
+		active_lanes |= BIT(3);
+	}
+
+	pr_err("%s: configuring ulps (%s) for ctrl%d, active lanes=0x%08x\n",
+		__func__, (enable ? "on" : "off"), ctrl_pdata->ndx,
+		active_lanes);
+
+	if (enable && !ctrl_pdata->ulps) {
+		/*
+		 * ULPS Entry Request.
+		 * Wait for a short duration to ensure that the lanes
+		 * enter ULP state.
+		 */
+		MIPI_OUTP(ctrl_pdata->ctrl_base + 0x0AC, active_lanes);
+		usleep(100);
+
+		/* Check to make sure that all active data lanes are in ULPS */
+		lane_status = MIPI_INP(ctrl_pdata->ctrl_base + 0xA8);
+		if (lane_status & (active_lanes << 8)) {
+			pr_err("%s: ULPS entry req failed for ctrl%d. Lane status=0x%08x\n",
+				__func__, ctrl_pdata->ndx, lane_status);
+			ret = -EINVAL;
+			goto error;
+		}
+		ctrl_pdata->ulps = true;
+	} else if (!enable && ctrl_pdata->ulps) {
+		/*Clearout any phy errors before exiting ULPS*/
+		mdss_dsi_dln0_phy_err(ctrl_pdata);
+		/*
+		 * ULPS Exit Request
+		 * Hardware requirement is to wait for at least 1ms
+		 */
+		MIPI_OUTP(ctrl_pdata->ctrl_base + 0x0AC, active_lanes << 8);
+		usleep(1000);
+		/*Force lanes to stop state*/
+		MIPI_OUTP(ctrl_pdata->ctrl_base + 0x0AC, active_lanes << 16);
+		MIPI_OUTP(ctrl_pdata->ctrl_base + 0x0AC, 0x0);
+
+		/*
+		 * Wait for a short duration before enabling
+		 * data transmission
+		 */
+		usleep(100);
+		pr_err("ulps isable\n");
+		lane_status = MIPI_INP(ctrl_pdata->ctrl_base + 0xA8);
+		ctrl_pdata->ulps = false;
+	}
+
+	pr_err("%s: DSI lane status = 0x%08x. Ulps %s\n", __func__,
+		lane_status, enable ? "enabled" : "disabled");
+
+error:
+	return ret;
+}	
+#endif /*VENDOR_EDIT*/
 
 static int mdss_dsi_update_panel_config(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 				int mode)
@@ -706,7 +1033,15 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
-
+	
+#ifdef VENDOR_EDIT
+	/* nanwei.deng@Mobile Phone Software bsp.Driver, 2014/10/30  Add for 14045 charger */
+	if(is_project(OPPO_14045) || is_project(OPPO_15005)|| is_project(OPPO_15011))
+	{
+		opchg_check_lcd_on();
+	}
+#endif
+	
 	if (pdata->panel_info.panel_power_on) {
 		pr_warn("%s:%d Panel already on.\n", __func__, __LINE__);
 		return 0;
@@ -727,6 +1062,8 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		return ret;
 	}
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_BUS_CLKS, 1);
 	if (ret) {
 		pr_err("%s: failed to enable bus clocks. rc=%d\n", __func__,
@@ -751,16 +1088,59 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	__mdss_dsi_ctrl_setup(pdata);
 	mdss_dsi_sw_reset(pdata);
 	mdss_dsi_host_init(pdata);
+#else /*VENDOR_EDIT*/
+	if (!pinfo->ulps_suspend_enabled) {
+		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_BUS_CLKS, 1);
+		if (ret) {
+			pr_err("%s: failed to enable bus clocks. rc=%d\n",
+					__func__, ret);
+			ret = mdss_dsi_panel_power_on(pdata, 0);
+			if (ret) {
+				pr_err("%s: Panel reset failed. rc=%d\n",
+					__func__, ret);
+				return ret;
+			}
+			pdata->panel_info.panel_power_on = 0;
+			return ret;
+		}
+		mdss_dsi_phy_sw_reset((ctrl_pdata->ctrl_base));
+		mdss_dsi_phy_init(pdata);
+		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_BUS_CLKS, 0);
+	}
+	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
+
+	if (!pinfo->ulps_suspend_enabled) {
+		mdss_dsi_ctrl_setup(pdata);
+		mdss_dsi_sw_reset(pdata, false);
+		mdss_dsi_host_init(pdata);
+	} else {
+		/*After ULPS exit do DSI reset once*/
+		pr_debug("%s: ULPS during suspend\n", __func__);
+		mdss_dsi_sw_reset(pdata, true);
+	}
+#endif /*VENDOR_EDIT*/
 
 	/*
 	 * Issue hardware reset line after enabling the DSI clocks and data
 	 * data lanes for LP11 init
 	 */
 	if (mipi->lp11_init) {
+#ifndef VENDOR_EDIT
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
 			pr_debug("reset enable: pinctrl not enabled\n");
+#else
+/* Yongpeng.Yi@Mobile Phone Software Dept.Driver, 2015/04/28  Add for 14037 tianma lcd power on flick */
+		if(!(is_project(OPPO_14037)&&(lcd_dev==LCD_TM_HX8392B))){
+			if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
+				pr_debug("reset enable: pinctrl not enabled\n");
+		}
+#endif /*VENDOR_EDIT*/
 		mdss_dsi_panel_reset(pdata, 1);
 	}
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Add for video mode ulps */
+	pdata->panel_info.panel_power_on = 1;
+#endif /*VENDOR_EDIT*/
 
 	if (mipi->init_delay)
 		usleep(mipi->init_delay);
@@ -777,6 +1157,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
 
+	
 	pr_debug("%s-:\n", __func__);
 	return 0;
 }
@@ -865,9 +1246,18 @@ static int mdss_dsi_unblank(struct mdss_panel_data *pdata)
 		ctrl_pdata->ctrl_state |= CTRL_STATE_PANEL_INIT;
 	}
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/31  Modify for 14005 IOMMU ERROR */
 	if ((pdata->panel_info.type == MIPI_CMD_PANEL) &&
 		mipi->vsync_enable && mipi->hw_vsync_mode)
 		mdss_dsi_set_tear_on(ctrl_pdata);
+#else /*VENDOR_EDIT*/
+	if(!is_project(OPPO_14005) && !is_project(OPPO_15011)){
+		if ((pdata->panel_info.type == MIPI_CMD_PANEL) &&
+		mipi->vsync_enable && mipi->hw_vsync_mode)
+		mdss_dsi_set_tear_on(ctrl_pdata);
+	}
+#endif /*VENDOR_EDIT*/
 
 error:
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
@@ -897,7 +1287,12 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata)
 
 	if (pdata->panel_info.type == MIPI_VIDEO_PANEL &&
 			ctrl_pdata->off_cmds.link_state == DSI_LP_MODE) {
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 		mdss_dsi_sw_reset(pdata);
+#else /*VENDOR_EDIT*/
+		mdss_dsi_sw_reset(pdata, false);
+#endif /*VENDOR_EDIT*/
 		mdss_dsi_host_init(pdata);
 	}
 
@@ -910,13 +1305,29 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata)
 			ctrl_pdata->switch_mode(pdata, DSI_VIDEO_MODE);
 		} else if (pdata->panel_info.type == MIPI_VIDEO_PANEL) {
 			ctrl_pdata->switch_mode(pdata, DSI_CMD_MODE);
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/31  Modify for 14005 IOMMU ERROR */
 			mdss_dsi_set_tear_off(ctrl_pdata);
+#else /*VENDOR_EDIT*/
+			if(!is_project(OPPO_14005) && !is_project(OPPO_15011)){
+				mdss_dsi_set_tear_off(ctrl_pdata);
+			}
+#endif /*VENDOR_EDIT*/
 		}
 	}
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/31  Modify for 14005 IOMMU ERROR */
 	if ((pdata->panel_info.type == MIPI_CMD_PANEL) &&
 		mipi->vsync_enable && mipi->hw_vsync_mode)
 		mdss_dsi_set_tear_off(ctrl_pdata);
+#else /*VENDOR_EDIT*/
+	if(!is_project(OPPO_14005) && !is_project(OPPO_15011)){
+		if ((pdata->panel_info.type == MIPI_CMD_PANEL) &&
+		mipi->vsync_enable && mipi->hw_vsync_mode)
+		mdss_dsi_set_tear_off(ctrl_pdata);
+	}
+#endif /*VENDOR_EDIT*/
 
 	if (ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT) {
 		if (!pdata->panel_info.dynamic_switch_pending) {
@@ -959,7 +1370,12 @@ int mdss_dsi_cont_splash_on(struct mdss_panel_data *pdata)
 	WARN((ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT),
 		"Incorrect Ctrl state=0x%x\n", ctrl_pdata->ctrl_state);
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Modify for video mode ulps */
 	mdss_dsi_sw_reset(pdata);
+#else /*VENDOR_EDIT*/
+	mdss_dsi_sw_reset(pdata, false);
+#endif /*VENDOR_EDIT*/
 	mdss_dsi_host_init(pdata);
 	mdss_dsi_op_mode_config(mipi->mode, pdata);
 	pr_debug("%s-:End\n", __func__);
@@ -1164,6 +1580,15 @@ static int mdss_dsi_ctl_partial_update(struct mdss_panel_data *pdata)
 	return rc;
 }
 
+int mdss_dsi_register_recovery_handler(struct mdss_dsi_ctrl_pdata *ctrl,
+	struct mdss_intf_recovery *recovery)
+{
+	mutex_lock(&ctrl->mutex);
+	ctrl->recovery = recovery;
+	mutex_unlock(&ctrl->mutex);
+	return 0;
+}
+
 static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 				  int event, void *arg)
 {
@@ -1185,6 +1610,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		rc = mdss_dsi_on(pdata);
 		mdss_dsi_op_mode_config(pdata->panel_info.mipi.mode,
 							pdata);
+		mdss_dsi_get_hw_revision(ctrl_pdata);
 		if (ctrl_pdata->on_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		break;
@@ -1213,7 +1639,6 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		mdss_dsi_clk_req(ctrl_pdata, (int) (unsigned long) arg);
 		break;
 	case MDSS_EVENT_DSI_CMDLIST_KOFF:
-		ctrl_pdata->recovery = (struct mdss_panel_recovery *)arg;
 		mdss_dsi_cmdlist_commit(ctrl_pdata, 1);
 		break;
 	case MDSS_EVENT_PANEL_UPDATE_FPS:
@@ -1236,6 +1661,10 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 	case MDSS_EVENT_DSI_DYNAMIC_SWITCH:
 		rc = mdss_dsi_update_panel_config(ctrl_pdata,
 					(int)(unsigned long) arg);
+		break;
+	case MDSS_EVENT_REGISTER_RECOVERY_HANDLER:
+		rc = mdss_dsi_register_recovery_handler(ctrl_pdata,
+			(struct mdss_intf_recovery *)arg);
 		break;
 	default:
 		pr_debug("%s: unhandled event=%d\n", __func__, event);
@@ -1335,7 +1764,10 @@ end:
 
 	return dsi_pan_node;
 }
-
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/11/01  Add for 14005 warning info first suspend */
+extern int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata);
+#endif /*VENDOR_EDIT*/
 static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 {
 	int rc = 0, i = 0;
@@ -1452,7 +1884,12 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 		pr_err("%s: dsi panel dev reg failed\n", __func__);
 		goto error_pan_node;
 	}
-
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/11/01  Add for 14005 warning info first suspend */
+	if((is_project(OPPO_14005)||is_project(OPPO_14037) || is_project(OPPO_15057) ||is_project(OPPO_15011)) && ctrl_pdata->panel_data.panel_info.cont_splash_enabled){
+		mdss_dsi_request_gpios(ctrl_pdata);
+	}
+#endif /*VENDOR_EDIT*/
 	pr_debug("%s: Dsi Ctrl->%d initialized\n", __func__, index);
 	return 0;
 
@@ -1569,7 +2006,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	struct mdss_panel_info *pinfo = &(ctrl_pdata->panel_data.panel_info);
 	struct device_node *dsi_ctrl_np = NULL;
 	struct platform_device *ctrl_pdev = NULL;
-	bool dynamic_fps;
 	const char *data;
 
 	mipi  = &(pinfo->mipi);
@@ -1649,55 +2085,73 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			data[i];
 	}
 
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Add for video mode ulps */
+	rc = of_property_read_u32(ctrl_pdev->dev.of_node,
+			"qcom,mmss-ulp-clamp-ctrl-offset",
+			&ctrl_pdata->ulps_clamp_ctrl_off);
+	if (!rc) {
+		rc = of_property_read_u32(ctrl_pdev->dev.of_node,
+				"qcom,mmss-phyreset-ctrl-offset",
+				&ctrl_pdata->ulps_phyrst_ctrl_off);
+	}
+	if (rc && pinfo->ulps_feature_enabled) {
+		pr_err("%s: dsi ulps clamp register settings missing\n",
+				__func__);
+		return -EINVAL;
+	}
+#endif /*VENDOR_EDIT*/
+
 	ctrl_pdata->shared_pdata.broadcast_enable = of_property_read_bool(
 		pan_node, "qcom,mdss-dsi-panel-broadcast-mode");
-
-	dynamic_fps = of_property_read_bool(pan_node,
-					  "qcom,mdss-dsi-pan-enable-dynamic-fps");
-	if (dynamic_fps) {
-		pinfo->dynamic_fps = true;
-		data = of_get_property(pan_node,
-					  "qcom,mdss-dsi-pan-fps-update", NULL);
-		if (data) {
-			if (!strcmp(data, "dfps_suspend_resume_mode")) {
-				pinfo->dfps_update =
-						DFPS_SUSPEND_RESUME_MODE;
-				pr_debug("%s: dfps mode: suspend/resume\n",
-								__func__);
-			} else if (!strcmp(data,
-					    "dfps_immediate_clk_mode")) {
-				pinfo->dfps_update =
-						DFPS_IMMEDIATE_CLK_UPDATE_MODE;
-				pr_debug("%s: dfps mode: Immediate clk\n",
-								__func__);
-			} else if (!strcmp(data,
-					    "dfps_immediate_porch_mode")) {
-				pinfo->dfps_update =
-					DFPS_IMMEDIATE_PORCH_UPDATE_MODE;
-				pr_debug("%s: dfps mode: Immediate porch\n",
-								__func__);
-			} else {
-				pr_debug("%s: dfps to default mode\n",
-								__func__);
-				pinfo->dfps_update =
-						DFPS_SUSPEND_RESUME_MODE;
-				pr_debug("%s: dfps mode: suspend/resume\n",
-								__func__);
-			}
-		} else {
-			pr_debug("%s: dfps update mode not configured\n",
-								__func__);
-				pinfo->dynamic_fps = false;
-				pr_debug("%s: dynamic FPS disabled\n",
-								__func__);
-		}
-		pinfo->new_fps = pinfo->mipi.frame_rate;
-	}
 
 	pinfo->panel_max_fps = mdss_panel_get_framerate(pinfo);
 	pinfo->panel_max_vtotal = mdss_panel_get_vtotal(pinfo);
 	ctrl_pdata->disp_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-enable-gpio", 0);
+
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/10/14  Add for 14045 ESD test */
+	if(is_project(OPPO_14045)){
+		ctrl_pdata->disp_en_negative_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+			"qcom,platform-enn-enable-gpio", 0);
+		pr_err("enn-enable-gpio = %d\n",ctrl_pdata->disp_en_negative_gpio);
+	}
+	if(is_project(OPPO_14045)||is_project(OPPO_14051)){
+		vdddc_3v3 = regulator_get(&ctrl_pdev->dev, "vdddc_3v3");
+		if( IS_ERR(vdddc_3v3) ){
+			rc = PTR_ERR(vdddc_3v3);
+			pr_err("Regulator get failed vdddc rc=%d\n", rc);	
+		}
+		vddf_2v5 = regulator_get(&ctrl_pdev->dev, "vddf_2v5");
+		if( IS_ERR(vddf_2v5) ){
+			rc = PTR_ERR(vddf_2v5);
+			pr_err("Regulator get failed vddf_2v5 rc=%d\n", rc);	
+		}
+		if(vdddc_3v3!=NULL && vddf_2v5!=NULL){
+			pr_err("%s vdddc_3v3 = %p\n",__func__,vdddc_3v3);
+			pr_err("%s vddf_2v5 = %p\n",__func__,vddf_2v5);
+			if(lcd_dev == LCD_14045_17_VIDEO || lcd_dev == LCD_14045_17_CMD){
+				regulator_set_voltage(vdddc_3v3,2800000,2800000);
+				regulator_set_voltage(vddf_2v5,1800000,1800000);
+			}else{
+				regulator_set_voltage(vdddc_3v3,3300000,3300000);
+				regulator_set_voltage(vddf_2v5,2500000,2500000);
+			}
+			/*regulator_set_optimum_mode(vdddc_3v3,100000);
+			rc = regulator_enable(vdddc_3v3);
+			if (rc){
+				pr_err("vdddc_3v3 enable error ret = %d\n",rc);
+			}*/
+		}
+	}
+#endif /*VENDOR_EDIT*/
+
+#ifndef VENDOR_EDIT
+/* Xinqin.Yang@PhoneSW.Multimedia, 2014/08/19  Add for -5V enable */
+    ctrl_pdata->disp_en_negative_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-enable-negative-gpio", 0);
+#endif /*CONFIG_VENDOR_EDIT*/
 
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio))
 		pr_err("%s:%d, Disp_en gpio not specified\n",
@@ -1710,6 +2164,14 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->rst_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 			 "qcom,platform-reset-gpio", 0);
+	
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/12/29  Add for 14045 base current */
+	if (is_project(OPPO_14045) && gpio_is_valid(ctrl_pdata->rst_gpio)){
+		if(gpio_is_valid(ctrl_pdata->rst_gpio))
+			gpio_direction_output(ctrl_pdata->rst_gpio,1);
+	}
+#endif /*VENDOR_EDIT*/
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio))
 		pr_err("%s:%d, reset gpio not specified\n",
 						__func__, __LINE__);
@@ -1764,6 +2226,24 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			ctrl_pdata->pclk_rate, ctrl_pdata->byte_clk_rate);
 
 	ctrl_pdata->ctrl_state = CTRL_STATE_UNKNOWN;
+
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/04/07  Add for video mode ulps */
+	if (pinfo->ulps_suspend_enabled) {
+		/*If ULPS during suspend flag is set, then always put an extra
+		* vote on the dsi controller regulator supply so that it never gets
+		* disabled during suspend/resume cycles.
+		*/
+		rc = msm_dss_enable_vreg(
+			ctrl_pdata->power_data[DSI_CTRL_PM].vreg_config,
+			ctrl_pdata->power_data[DSI_CTRL_PM].num_vreg, 1);
+		if (rc) {
+			pr_err("%s: failed to enable vregs for %s\n",
+				__func__, __mdss_dsi_pm_name(DSI_CTRL_PM));
+			return rc;
+		}
+	}
+#endif /*VENDOR_EDIT*/
 
 	if (pinfo->cont_splash_enabled) {
 		pinfo->panel_power_on = 1;

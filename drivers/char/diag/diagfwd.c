@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -104,6 +104,10 @@ int chk_config_get_id(void)
 	case MSM_CPU_8916:
 		return MSM8916_TOOLS_ID;
 	case MSM_CPU_8939:
+		return MSM8939_TOOLS_ID;
+	case MSM_CPU_8929:
+		return MSM8929_TOOLS_ID;
+	case MSM_CPU_8939_BC:
 		return MSM8939_TOOLS_ID;
 	default:
 		if (driver->use_device_tree) {
@@ -1615,7 +1619,14 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 		return 0;
 	}
 	/* Check for download command */
+
+#ifdef VENDOR_EDIT
+//WenLong.Cai@OnLineRD.AirService.Modem, 2014/01/04, Modify for enabling QPST/QXDM reset UE 
+//when use "user mode" to compile android, QPST/QXDM could not reset UE.
+	else if ((cpu_is_msm8x60() || chk_apps_master()) && (*buf == 0x29)&&(*(buf+1)==0x2)) {
+#else
 	else if ((cpu_is_msm8x60() || chk_apps_master()) && (*buf == 0x3A)) {
+#endif
 		/* send response back */
 		driver->apps_rsp_buf[0] = *buf;
 		encode_rsp_and_send(0);
