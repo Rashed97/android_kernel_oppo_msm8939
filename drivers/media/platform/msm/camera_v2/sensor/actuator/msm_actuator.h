@@ -55,6 +55,7 @@ struct msm_actuator_func_tbl {
 			int16_t);
 	int32_t (*actuator_set_position)(struct msm_actuator_ctrl_t *,
 		struct msm_actuator_set_position_t *);
+	int32_t (*actuator_park_lens)(struct msm_actuator_ctrl_t *);
 };
 
 struct msm_actuator {
@@ -99,8 +100,16 @@ struct msm_actuator_ctrl_t {
 	uint16_t i2c_tbl_index;
 	enum cci_i2c_master_t cci_master;
 	uint32_t subdev_id;
+#ifdef VENDOR_EDIT
+/*shijie.zhuo,2014/09/10,Add for close camera click*/
+    uint16_t current_lens_pos;
+    uint32_t hw_params;
+    enum actuator_type act_type;
+#endif
 	enum msm_actuator_state_t actuator_state;
 	struct msm_actuator_vreg vreg_cfg;
+	struct park_lens_data_t park_lens;
+	uint32_t max_code_size;
 };
 
 #endif

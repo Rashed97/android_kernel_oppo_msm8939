@@ -51,6 +51,10 @@ struct subsys_desc {
 
 	int (*shutdown)(const struct subsys_desc *desc, bool force_stop);
 	int (*powerup)(const struct subsys_desc *desc);
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	int (*freeup)(const struct subsys_desc *desc);
+#endif
 	void (*crash_shutdown)(const struct subsys_desc *desc);
 	int (*ramdump)(int, const struct subsys_desc *desc);
 	irqreturn_t (*err_fatal_handler) (int irq, void *dev_id);

@@ -4186,6 +4186,10 @@ struct inode *ext4_iget(struct super_block *sb, unsigned long ino)
 	}
 	i_uid_write(inode, i_uid);
 	i_gid_write(inode, i_gid);
+#ifdef VENDOR_EDIT
+//Jianfeng.Qiu@OnlineRd.Driver, 2014/1/23, Add for support to set uid, gid, fmask, dmask
+        ext4_fill_inode(sb, inode);
+#endif /* VENDOR_EDIT */
 	set_nlink(inode, le16_to_cpu(raw_inode->i_links_count));
 
 	ext4_clear_state_flags(ei);	/* Only relevant on 32-bit archs */
@@ -4412,6 +4416,10 @@ static int ext4_do_update_inode(handle_t *handle,
 		memset(raw_inode, 0, EXT4_SB(inode->i_sb)->s_inode_size);
 
 	ext4_get_inode_flags(ei);
+#ifdef VENDOR_EDIT
+//Jianfeng.Qiu@OnlineRd.Driver, 2014/1/23, Add for support to set uid, gid, fmask, dmask
+        ext4_fill_inode(inode->i_sb, inode);
+#endif /* VENDOR_EDIT */
 	raw_inode->i_mode = cpu_to_le16(inode->i_mode);
 	i_uid = i_uid_read(inode);
 	i_gid = i_gid_read(inode);

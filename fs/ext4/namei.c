@@ -2247,6 +2247,10 @@ retry:
 	inode = ext4_new_inode_start_handle(dir, mode, &dentry->d_name, 0,
 					    NULL, EXT4_HT_DIR, credits);
 	handle = ext4_journal_current_handle();
+#ifdef VENDOR_EDIT
+//Jianfeng.Qiu@OnlineRd.Driver, 2014/1/23, Add for support to set uid, gid, fmask, dmask
+        ext4_fill_inode(dir->i_sb, inode);
+#endif /* VENDOR_EDIT */
 	err = PTR_ERR(inode);
 	if (!IS_ERR(inode)) {
 		inode->i_op = &ext4_file_inode_operations;
@@ -2391,6 +2395,10 @@ retry:
 					    &dentry->d_name,
 					    0, NULL, EXT4_HT_DIR, credits);
 	handle = ext4_journal_current_handle();
+#ifdef VENDOR_EDIT
+//Jianfeng.Qiu@OnlineRd.Driver, 2014/1/23, Add for support to set uid, gid, fmask, dmask
+        ext4_fill_inode(dir->i_sb, inode);
+#endif /* VENDOR_EDIT */
 	err = PTR_ERR(inode);
 	if (IS_ERR(inode))
 		goto out_stop;

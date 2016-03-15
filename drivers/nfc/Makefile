@@ -1,12 +1,12 @@
 #
 # Makefile for nfc devices
-#
 
-obj-$(CONFIG_NFC_PN544)		+= pn544/
-obj-$(CONFIG_NFC_MICROREAD)	+= microread/
-obj-$(CONFIG_NFC_PN533)		+= pn533.o
-obj-$(CONFIG_NFC_WILINK)	+= nfcwilink.o
-obj-$(CONFIG_NFC_MEI_PHY)	+= mei_phy.o
-obj-$(CONFIG_NFC_QNCI)		+= nfc-nci.o
+# 15 Oct 2013, Yuyi <oppo@Independent Group>
+# Rewritten to use pn544 driver.
 
-ccflags-$(CONFIG_NFC_DEBUG) := -DDEBUG
+obj-$(CONFIG_PN544_NFC)		+= pn547.o
+
+#obj-$(CONFIG_NFC_PN533)		+= pn533.o
+#obj-$(CONFIG_NFC_WILINK)	+= nfcwilink.o
+
+#ccflags-$(CONFIG_NFC_DEBUG) := -DDEBUG

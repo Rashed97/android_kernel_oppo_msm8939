@@ -5,7 +5,12 @@
 #include <linux/threads.h>
 #include <asm/irq.h>
 
-#define NR_IPI	7
+//#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv	add QCM case01975587  20150416*/
+//#define NR_IPI	7
+//#else
+#define NR_IPI	8
+//#endif
 
 typedef struct {
 	unsigned int __softirq_pending;

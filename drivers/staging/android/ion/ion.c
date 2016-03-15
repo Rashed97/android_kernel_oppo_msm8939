@@ -465,8 +465,13 @@ static int ion_handle_add(struct ion_client *client, struct ion_handle *handle)
 			p = &(*p)->rb_left;
 		else if (handle->buffer > entry->buffer)
 			p = &(*p)->rb_right;
-		else
+	//#ifdef VENDOR_EDIT
+	/*dengnanwei@bsp.drv   add for QCOM patch to ion in 20141105*/
+		else {
 			WARN(1, "%s: buffer already found.", __func__);
+			return -EINVAL;
+		}
+	//#endif
 	}
 
 	rb_link_node(&handle->node, parent, p);
