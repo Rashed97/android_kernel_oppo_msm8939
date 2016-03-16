@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -31,14 +31,22 @@
 			interrupt-names = "kpdpwr", "resin";
 			qcom,pon-dbc-delay = <15625>;
 			qcom,system-reset;
+			qcom,store-hard-reset-reason;
 
 			qcom,pon_1 {
 				qcom,pon-type = <0>;
 				qcom,support-reset = <1>;
 				qcom,pull-up = <1>;
-				qcom,s1-timer = <10256>;
+			//#ifndef VENDOR_EDIT
+			//Lycan.Wang@Prd.BasicDrv, 2014-05-10 Add for long press power-key to reset
+			//	qcom,s1-timer = <10256>;
+			//	qcom,s2-timer = <2000>;
+			//	qcom,s2-type = <1>;
+			//#else
+				qcom,s1-timer = <6720>;
 				qcom,s2-timer = <2000>;
-				qcom,s2-type = <1>;
+				qcom,s2-type = <7>;
+			//#endif /* VENDOR_EDIT */
 				linux,code = <116>;
 			};
 
@@ -115,8 +123,12 @@
                         #address-cells = <1>;
                         #size-cells = <1>;
                         qcom,qpnp-rtc-write = <0>;
-                        qcom,qpnp-rtc-alarm-pwrup = <0>;
-
+	//#ifndef VENDOR_EDIT
+                     /*Tong.han@BSP.group.TP Modified for rtc restart phone. 2014-08-12*/
+         //            qcom,qpnp-rtc-alarm-pwrup = <0>;  
+	 //#elsse
+ 		     qcom,qpnp-rtc-alarm-pwrup = <1>;
+	 //#endif
                         qcom,pm8916_rtc_rw@6000 {
                                 reg = <0x6000 0x100>;
                         };

@@ -284,6 +284,7 @@
 				qcom,time-overhead = <3700>;
 				qcom,min-child-idx = <1>;
 				qcom,notify-rpm;
+				qcom,disable-dynamic-int-routing;
 			};
 
 			qcom,pm-cluster@0{
@@ -422,6 +423,15 @@
 		};
 	};
 
+//#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch CR772415 20150114*/
+	qcom,lpm-workarounds {
+		compatible = "qcom,lpm-workarounds";
+
+		lpm-cx-supply = <&pm8916_s2_corner>;
+		qcom,lpm-wa-cx-turbo-unvote;
+	};
+//#endif
 	qcom,mpm@601d0 {
 		compatible = "qcom,mpm-v2";
 		reg = <0x601d0 0x1000>, /* MSM_RPM_MPM_BASE 4K */

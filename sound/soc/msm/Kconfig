@@ -255,6 +255,8 @@ config SND_SOC_MSM8X16
 	select QTI_PP
 	select DTS_SRS_TM
 	select DOLBY_DAP
+    #John.Xu add for ts4621 2014.10.24
+	select SND_SOC_TS4621
 	help
 	 To add support for SoC audio on MSM8X16.
 	 This will enable sound soc drivers which

@@ -30,8 +30,10 @@
 
 		/* Fudge factors */
 		qcom,mdss-ab-factor = <1 1>;		/* 1 times    */
-		qcom,mdss-ib-factor = <2 1>;		/* 2 times    */
-		qcom,mdss-ib-factor-cmd = <10 6>;	/* 1.6 times */
+		qcom,mdss-ib-factor = <2 1>;		/* 2 times  */
+		/*Xiaori.yuan Add for 14005 performance*/
+		qcom,mdss-ib-factor-cmd = <2 1>;	/* 2 times */
+		/*Xiaori.yuan add end*/
 		qcom,mdss-clk-factor = <105 100>;	/* 1.05 times */
 		qcom,max-bandwidth-low-kbps = <2000000>;
 		qcom,max-bandwidth-high-kbps = <2000000>;
@@ -129,8 +131,9 @@
 		qcom,mdss-mdp = <&mdss_mdp>;
 		gdsc-supply = <&gdsc_mdss>;
 		vdda-supply = <&pm8916_l2>;
-		vdd-supply = <&pm8916_l17>;
-		vddio-supply = <&pm8916_l6>;
+		/*#ifdef VENDOR_EDIT Xiaori.Yuan delete vdd*/
+		/*vdd-supply = <&pm8916_l17>;*/
+		vddio-supply = <&pm8916_l5>;
 		clocks = <&clock_gcc clk_gcc_mdss_mdp_clk>,
 			 <&clock_gcc clk_gcc_mdss_ahb_clk>,
 			 <&clock_gcc clk_gcc_mdss_axi_clk>,
@@ -181,15 +184,15 @@
 		qcom,panel-supply-entries {
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			qcom,panel-supply-entry@0 {
+			/*#ifdef VENDOR_EDIT Xiaori.Yuan delete vdd*/
+			/*qcom,panel-supply-entry@0 {
 				reg = <0>;
 				qcom,supply-name = "vdd";
 				qcom,supply-min-voltage = <2850000>;
 				qcom,supply-max-voltage = <2850000>;
 				qcom,supply-enable-load = <100000>;
 				qcom,supply-disable-load = <100>;
-			};
+			};*/
 
 			qcom,panel-supply-entry@1 {
 				reg = <1>;
@@ -213,7 +216,8 @@
 		qcom,mdss-mdp = <&mdss_mdp>;
 		gdsc-supply = <&gdsc_mdss>;
 		vdda-supply = <&pm8916_l2>;
-		vdd-supply = <&pm8916_l17>;
+		/*#ifdef VENDOR_EDIT Xiaori.Yuan delete vdd*/
+		/*vdd-supply = <&pm8916_l17>;*/
 		vddio-supply = <&pm8916_l6>;
 		clocks = <&clock_gcc clk_gcc_mdss_mdp_clk>,
 			 <&clock_gcc clk_gcc_mdss_ahb_clk>,
@@ -266,14 +270,15 @@
 		qcom,panel-supply-entries {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			qcom,panel-supply-entry@0 {
+			/*#ifdef VENDOR_EDIT Xiaori.Yuan delete vdd*/
+			/*qcom,panel-supply-entry@0 {
 				reg = <0>;
 				qcom,supply-name = "vdd";
 				qcom,supply-min-voltage = <2850000>;
 				qcom,supply-max-voltage = <2850000>;
 				qcom,supply-enable-load = <100000>;
 				qcom,supply-disable-load = <100>;
-			};
+			};*/
 			qcom,panel-supply-entry@1 {
 				reg = <1>;
 				qcom,supply-name = "vddio";

@@ -47,6 +47,10 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
+#ifdef VENDOR_EDIT//Modified by Tong.han@Bsp.group for T card can't be recongnized.
+#include <mach/oppo_project.h>
+#endif
+
 /* If the device is not responding */
 #define MMC_CORE_TIMEOUT_MS	(10 * 60 * 1000) /* 10 minute timeout */
 
@@ -2085,8 +2089,17 @@ void mmc_power_up(struct mmc_host *host)
 	 * This delay should be sufficient to allow the power supply
 	 * to reach the minimum voltage.
 	 */
-	mmc_delay(10);
-
+#ifdef VENDOR_EDIT//Modified by Tong.han@Bsp.group for T card can't be recongnized.
+	if(is_project(OPPO_14037)||is_project(OPPO_15011)){
+		if(strcmp(mmc_hostname(host),"mmc0")) {
+			mmc_delay(150);
+		}else{
+			mmc_delay(10);
+		}
+	}else{
+		mmc_delay(10);
+	}
+#endif
 	host->ios.clock = host->f_init;
 
 	host->ios.power_mode = MMC_POWER_ON;
@@ -3423,9 +3436,15 @@ void mmc_rescan(struct work_struct *work)
 	mmc_release_host(host);
 	mmc_rpm_release(host, &host->class_dev);
  out:
+ 	#ifndef VENDOR_EDIT
+	/* dengnw@bsp.drv   add QCM case01977818 CR655281 20150415*/
 	if (extend_wakelock)
 		wake_lock_timeout(&host->detect_wake_lock, HZ / 2);
-
+	#else
+	/* only extend the wakelock, if suspend has not started yet */
+	if (extend_wakelock && !host->rescan_disable) 		
+		wake_lock_timeout(&host->detect_wake_lock, HZ / 2);
+	#endif
 	if (host->caps & MMC_CAP_NEEDS_POLL)
 		mmc_schedule_delayed_work(&host->detect, HZ);
 }
@@ -3824,15 +3843,23 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 			spin_unlock_irqrestore(&host->lock, flags);
 			break;
 		}
+		#ifdef VENDOR_EDIT
+		/* dengnw@bsp.drv   add QCM case01977818 CR655281 20150415*/
+		/* since its suspending anyway, disable rescan */
+		host->rescan_disable = 1; 		
+		#endif
 		spin_unlock_irqrestore(&host->lock, flags);
 
 		/* Wait for pending detect work to be completed */
 		if (!(host->caps & MMC_CAP_NEEDS_POLL))
 			flush_work(&host->detect.work);
 
+		#ifndef VENDOR_EDIT
+		/* dengnw@bsp.drv   add QCM case01977818 CR655281 20150415*/
 		spin_lock_irqsave(&host->lock, flags);
 		host->rescan_disable = 1;
 		spin_unlock_irqrestore(&host->lock, flags);
+		#endif
 
 		/*
 		 * In some cases, the detect work might be scheduled
@@ -3841,6 +3868,16 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		 */
 		cancel_delayed_work_sync(&host->detect);
 
+		#ifdef VENDOR_EDIT	
+		/* dengnw@bsp.drv   add QCM case01977818 CR655281 20150415*/
+		/*
+		* It is possible that the wake-lock has been acquired, since
+		* its being suspended, release the wakelock
+		*/
+		if (wake_lock_active(&host->detect_wake_lock))
+			wake_unlock(&host->detect_wake_lock);
+		#endif
+		
 		if (!host->bus_ops || host->bus_ops->suspend)
 			break;
 

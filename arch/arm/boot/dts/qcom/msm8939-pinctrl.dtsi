@@ -30,6 +30,82 @@
 				num_irqs = <122>;
 			};
 		};
+		
+
+		/*OPPO 2014-07-30 dengnw@bsp.drv Add for fast_Charging*/
+		charging_switch1 {
+			/* MCLK */
+			qcom,pins = <&gp 1>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "charging-switch1";
+			/* active state */
+			charging_switch1_active: active {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-up; /*  PULL  UP*/
+			};
+			/*suspend state */
+			charging_switch1_sleep: sleep {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-down; /* PULL DOWN */
+			};
+		};
+
+		charging_reset {
+			/* MCLK */
+			qcom,pins = <&gp 52>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "charging-reset";
+			/* active state */
+			charging_reset_active: active {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-up; /*  PULL	UP*/
+			};
+	
+			charging_reset_sleep: sleep {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-down; /* PULL DOWN */
+			};
+		};
+
+		charging_clock {
+			/* MCLK */
+			qcom,pins = <&gp 120>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "charging-clock";
+			/* active state */
+			charging_clock_active: active {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-up; /*  PULL	UP*/
+			};
+	
+			/*suspend state */
+			charging_clock_sleep: sleep {
+				drive-strength = <2>; /* 2 MA */
+				bias-pull-down; /* PULL DOWN */
+			};
+		};
+		charging_data {
+			/* MCLK */
+			qcom,pins = <&gp 109>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "charging-data";
+			/* active state */
+			charging_data_active: active {
+				drive-strength = <2>; /* 2 MA */
+				//bias-disable; /*  PULL	UP*/
+				bias-pull-up; /*  PULL	UP*/
+			};
+			/*suspend state */
+			charging_data_sleep: sleep {
+				drive-strength = <2>; /* 2 MA */
+				bias-disable; /* PULL DOWN */
+			};
+		};
+		/*OPPO 2014-07-30 dengnw Add end*/
 
 		pmx-uartconsole {
 			qcom,pins = <&gp 4>, <&gp 5>;
@@ -118,6 +194,7 @@
 			};
 		};
 
+		//#ifdef VENDOR_EDIT //Jianfeng.Qiu@BSP.Drv, 2014-8-13, Modify for delete card hotplug
 		sdhc2_cd_pin {
 			qcom,pins = <&gp 38>;
 			qcom,num-grp-pins = <1>;
@@ -132,7 +209,35 @@
 				bias-disable;
 			};
 		};
-
+		sim2_cd_pin {
+			qcom,pins = <&gp 56>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "sim2-cd-gpio";
+			sim2_cd_on: cd_on {
+				drive-strength = <2>;
+				bias-pull-up;
+				};
+			sim2_cd_off: cd_off {
+				drive-strength = <2>;
+				bias-disable;
+				};
+			};
+		sim1_cd_pin {
+			qcom,pins = <&gp 60>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "sim1-cd-gpio";
+			sim1_cd_on: cd_on {
+				drive-strength = <2>;
+				bias-pull-up;
+				};
+			sim1_cd_off: cd_off {
+				drive-strength = <2>;
+				bias-disable;
+				};
+			};
+		//#endif
 		/* SDC pin type */
 		sdc: sdc {
 			qcom,pin-type-sdc;
@@ -245,6 +350,46 @@
 			};
 		};
 
+		/* #ifdef VENDOR_EDIT dengnw@bsp.drv add for i2c1 20140721 start*/
+		pmx_i2c_1 {
+			/* CLK, DATA */
+			qcom,pins = <&gp 2>, <&gp 3>;
+			qcom,num-grp-pins = <2>;
+			qcom,pin-func = <3>;
+			label = "pmx_i2c_1";
+		
+			i2c_1_active: i2c_1_active {
+					drive-strength = <2>; /* 2 MA */
+					bias-disable;		  /* No PULL */
+				};
+		
+			i2c_1_sleep: i2c_1_sleep {
+					drive-strength = <2>; /* 2 MA */
+					bias-disable;		  /* No PULL */
+				};
+			};
+		/*dengnw@bsp.drv add for i2c1 20140721 end*/
+		
+		/*OPPO 2014-07-21 zhzhyon Add for tfa9890 and wm8916 I2C*/
+		pmx_i2c_3 {
+			/* CLK, DATA */
+			qcom,pins = <&gp 11>, <&gp 10>;
+			qcom,num-grp-pins = <2>;
+			qcom,pin-func = <2>;
+			label = "pmx_i2c_3";
+
+			i2c_3_active: i2c_3_active {
+				drive-strength = <2>; /* 2 MA */
+				bias-disable;         /* No PULL */
+			};
+
+			i2c_3_sleep: i2c_3_sleep {
+				drive-strength = <2>; /* 2 MA */
+				bias-disable;	      /* No PULL */
+			};
+		};		
+		/*OPPO 2014-07-21 zhzhyon Add end*/
+
 		pmx_i2c_4 {
 			qcom,pins = <&gp 14>, <&gp 15>; /* SDA, SCL */
 			qcom,num-grp-pins = <2>;
@@ -291,7 +436,11 @@
 		};
 
 		usb-id-pin {
-			qcom,pins = <&gp 110>;
+//#ifndef VENDOR_EDIT //Jianfeng.Qiu@BSP.Driver, 2014-09-18, Modify for OTG id pin change
+			//qcom,pins = <&gp 110>;
+//#else /* VENDOR_EDIT */
+			qcom,pins = <&gp 98>;
+//#endif /* VENDOR_EDIT */
 			qcom,num-grp-pins = <1>;
 			qcom,pin-func = <0>;
 			label = "usb-id-pin";
@@ -299,27 +448,39 @@
 				drive-strength = <8>;
 				bias-pull-up;
 			};
+			usbid_sleep: sleep {
+				drive-strength = <8>; 
+				bias-disable = <0>;	 
+			};
 		};
 
 		spi0_active {
-                        /* MOSI, MISO, CLK */
-                        qcom,pins = <&gp 8>, <&gp 9>, <&gp 11>;
-                        qcom,num-grp-pins = <3>;
-                        qcom,pin-func = <1>;
-                        label = "spi0-active";
-                        /* active state */
-                        spi0_default: default {
-                                drive-strength = <12>; /* 12 MA */
-                                bias-disable = <0>; /* No PULL */
-                        };
+                /* MOSI, MISO, CLK */
+				/*yxr delete default config gp8*/
+                /*qcom,pins = <&gp 8>, <&gp 9>, <&gp 11>;*/
+				/*liuping delete default config gp9*/
+				/*qcom,pins =  <&gp 9>, <&gp 11>;*/
+				qcom,pins = <&gp 11>;
+                qcom,num-grp-pins = <1>;
+                qcom,pin-func = <1>;
+                label = "spi0-active";
+                /* active state */
+                spi0_default: default {
+                        drive-strength = <12>; /* 12 MA */
+                        bias-disable = <0>; /* No PULL */
                 };
+        };
 
-                spi0_suspend {
-                        /* MOSI, MISO, CLK */
-                        qcom,pins = <&gp 8>, <&gp 9>, <&gp 11>;
-                        qcom,num-grp-pins = <3>;
-                        qcom,pin-func = <0>;
-                        label = "spi0-suspend";
+        spi0_suspend {
+                /* MOSI, MISO, CLK */
+				/*yxr delete default config gp8*/
+                /*qcom,pins = <&gp 8>, <&gp 9>, <&gp 11>;*/
+				/*liuping delete default config gp9*/
+				/*qcom,pins =  <&gp 9>, <&gp 11>;*/
+				qcom,pins = <&gp 11>;
+                qcom,num-grp-pins = <1>;
+                qcom,pin-func = <0>;
+                label = "spi0-suspend";
                         /* suspended state */
                         spi0_sleep: sleep {
                                 drive-strength = <2>; /* 2 MA */
@@ -351,9 +512,10 @@
                         };
                 };
 
+		/* #ifdef VENDOR_EDIT liuping@BSP.drv add for sensor in 20140918*/
 		apds99xx_int_pin {
 			/* Ambient light and proximity sensor apds9930 and apds9900 */
-			qcom,pins = <&gp 113>;
+			qcom,pins = <&gp 9>;
 			qcom,pin-func = <0>;
 			qcom,num-grp-pins = <1>;
 			label = "apds99xx-irq";
@@ -399,9 +561,15 @@
 		};
 
 		tlmm_gpio_key {
+			/* deleted by dengnw@BSP.group (conflict with fast_charger data and volum down) 2014-8-29  
 			qcom,pins = <&gp 107>, <&gp 108>, <&gp 109>;
 			qcom,pin-func = <0>;
 			qcom,num-grp-pins = <3>;
+			*/
+			qcom,pins = <&gp 107>, <&gp 108>;
+			qcom,pin-func = <0>;
+			qcom,num-grp-pins = <2>;
+		
 			label = "tlmm_gpio_key";
 			gpio_key_active: gpio_key_active {
 				drive-strength = <2>;
@@ -473,21 +641,6 @@
 			};
 		};
 
-		ext-cdc-tlmm-lines {
-			qcom,pins = <&gp 116>, <&gp 112>, <&gp 117>,
-					<&gp 118>, <&gp 119>;
-			qcom,num-grp-pins = <5>;
-			qcom,pin-func = <1>;
-			label = "ext-cdc-tlmm-lines";
-			ext_cdc_tlmm_lines_act: tlmm_lines_on {
-				drive-strength = <8>;
-			};
-			ext_cdc_tlmm_lines_sus: tlmm_lines_off {
-				drive-strength = <2>;
-				bias-disable;
-			};
-		};
-
 		cdc_slim_lines {
 			qcom,pins = <&gp 63>;
 			qcom,num-grp-pins = <1>;
@@ -503,6 +656,90 @@
 				bias-disable;
 			};
 		};
+
+		/*OPPO 2014-08-20 zhzhyon Add for primary i2s*/
+		cdc-ext-pa-lines {
+			qcom,pins = <&gp 113>, <&gp 114>,
+					<&gp 115>;
+			qcom,num-grp-pins = <3>;
+			qcom,pin-func = <1>;
+			label = "cdc-ext-pa-lines";
+			cdc_ext_pa_act: ext_pa_on {
+				drive-strength = <8>;
+				bias-pull-none;
+			};
+			cdc_ext_pa_sus: ext_pa_off {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+
+		cdc-ext-pa-ws-line {
+			qcom,pins = <&gp 110>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <2>;
+			label = "cdc-ext-pa-ws-line";
+			cdc_ext_pa_ws_act: ext_pa_on {
+				drive-strength = <8>;
+				bias-pull-none;
+			};
+			cdc_ext_pa_ws_sus: ext_pa_off {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+		/*OPPO 2014-08-20 zhzhyon Add end*/
+
+		/*OPPO 2014-10-16 zhzhyon Add for quat and sec i2s patch*/
+		mclk-lines {
+			qcom,pins = <&gp 116>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <2>;
+			label = "mclk-lines";
+			mclk_lines_act: mclk_lines_on {
+				drive-strength = <8>;
+			};
+			mclk_lines_sus: mclk_lines_off {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+		/*OPPO 2014-10-16 zhzhyon Add end*/
+
+		/*OPPO 2014-07-21 zhzhyon Add for quat i2s*/
+		ext-cdc-tlmm-lines {
+			qcom,pins = <&gp 116>, <&gp 112>, <&gp 117>,
+						<&gp 118>, <&gp 119>;
+			qcom,num-grp-pins = <5>;
+			qcom,pin-func = <1>;
+			label = "ext-cdc-tlmm-lines";
+			ext_cdc_tlmm_lines_act: tlmm_lines_on {
+				drive-strength = <8>;
+				bias-pull-none;
+			};
+			ext_cdc_tlmm_lines_sus: tlmm_lines_off {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+		/*OPPO 2014-07-21 zhzhyon Add end*/
+
+		/*OPPO 2014-08-20 zhzhyon Add for ak4375*/
+		audio-vdd-enable {
+			qcom,pins = <&gp 102>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "audio-vdd-en";
+			audio_vdd_enable_act: audio_vdd_on {
+				drive-strength = <16>;
+				bias-pull-none;
+			};
+			audio_vdd_enable_sus: audio_vdd_off {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+		/*OPPO 2014-08-20 zhzhyon Add end*/
 
 		cdc-pdm-lines {
 			qcom,pins = <&gp 63>, <&gp 64>, <&gp 65>,
@@ -570,6 +807,8 @@
 			};
 		};
 
+//#ifndef VENDOR_EDIT //Jianfeng.Qiu@BSP.Driver, 2014-09-13, Modify for use gpio 121 for sdcard vdd supply enable/disable
+/*
 		cdc-vdd-spkr {
 			qcom,pins = <&gp 121>;
 			qcom,num-grp-pins = <1>;
@@ -585,6 +824,15 @@
 				bias-disable;
 			};
 		};
+*/
+//# /* VENDOR_EDIT */
+		sdhc2_vdd_pin {
+			qcom,pins = <&gp 121>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "vdd-gpio-en";
+		};
+//#endif /* VENDOR_EDIT */
 
 		ext_buck_vsel {
 			qcom,pins = <&gp 111>;
@@ -809,7 +1057,7 @@
 			label = "cci0";
 			/* active state */
 			cci0_default: default {
-				drive-strength = <2>; /* 2 MA */
+				drive-strength = <8>; /* 2 MA */
 				bias-disable = <0>; /* No PULL */
 			};
 			/*suspended state */
@@ -827,7 +1075,7 @@
 			label = "cam-sensor-mclk0";
 			/* active state */
 			cam_sensor_mclk0_default: default {
-				drive-strength = <2>; /* 2 MA */
+				drive-strength = <8>; /* 2 MA */
 				bias-disable = <0>; /* No PULL */
 			};
                 };
@@ -940,7 +1188,8 @@
 		};
 
 		/* CoreSight */
-		tpiu_seta_1 {
+		/*#ifdef VENDOR_EDIT yxr delete default config gp8*/
+		/*tpiu_seta_1 {
 			qcom,pins = <&gp 8>;
 			qcom,num-grp-pins = <1>;
 			qcom,pin-func = <3>;
@@ -949,8 +1198,10 @@
 				drive-strength = <16>;
 				bias-disable;
 			};
-		};
+		};*/
 
+		/*#ifdef VENDOR_EDIT liuping delete default config gp9*/
+		/*
 		tpiu_seta_2 {
 			qcom,pins = <&gp 9>;
 			qcom,num-grp-pins = <1>;
@@ -961,7 +1212,7 @@
 				bias-disable;
 			};
 		};
-
+		*/
 		tpiu_seta_3 {
 			qcom,pins = <&gp 10>;
 			qcom,num-grp-pins = <1>;

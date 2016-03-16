@@ -43,6 +43,8 @@
 #define MAX_INIT_FRAME_DROP 31
 #define ISP_Q2 (1 << 2)
 
+/*AVTimer h/w is configured to generate 27Mhz ticks*/
+
 #define VFE_PING_FLAG 0xFFFFFFFF
 #define VFE_PONG_FLAG 0x0
 
