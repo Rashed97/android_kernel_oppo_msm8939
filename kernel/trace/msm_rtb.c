@@ -44,11 +44,19 @@
  * Total = 32 bytes.
  */
 struct msm_rtb_layout {
-	unsigned char sentinel[11];
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch for i2c error.   in 20141104*/
+//unsigned char sentinel[11];
+	unsigned char sentinel[3];
+//#endif
 	unsigned char log_type;
 	uint32_t idx;
 	uint64_t caller;
 	uint64_t data;
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch for i2c error.   in 20141104*/
+	uint64_t timestamp;
+//#endif
 } __attribute__ ((__packed__));
 
 
@@ -107,7 +115,14 @@ static void msm_rtb_write_type(enum logk_event_type log_type,
 {
 	start->log_type = (char)log_type;
 }
-
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch for i2c error.   in 20141104*/
+static void msm_rtb_write_timestamp(enum logk_event_type log_type,
+			struct msm_rtb_layout *start)
+{
+	start->timestamp = sched_clock();
+}
+//#endif
 static void msm_rtb_write_caller(uint64_t caller, struct msm_rtb_layout *start)
 {
 	start->caller = caller;
@@ -136,6 +151,10 @@ static void uncached_logk_pc_idx(enum logk_event_type log_type, uint64_t caller,
 	msm_rtb_write_caller(caller, start);
 	msm_rtb_write_idx(idx, start);
 	msm_rtb_write_data(data, start);
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch for i2c error.   in 20141104*/
+	msm_rtb_write_timestamp(data, start);
+//#endif
 	mb();
 
 	return;

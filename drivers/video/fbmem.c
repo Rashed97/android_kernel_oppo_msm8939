@@ -1190,12 +1190,14 @@ static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	case FBIOBLANK:
 		if (!lock_fb_info(info))
 			return -ENODEV;
+		pr_err("FBIOBLANK 1\n");
 		console_lock();
 		info->flags |= FBINFO_MISC_USEREVENT;
 		ret = fb_blank(info, arg);
 		info->flags &= ~FBINFO_MISC_USEREVENT;
 		console_unlock();
 		unlock_fb_info(info);
+		pr_err("FBIOBLANK 4\n");
 		break;
 	default:
 		fb = info->fbops;

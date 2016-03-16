@@ -59,6 +59,10 @@ struct wakeup_source {
 	unsigned long		relax_count;
 	unsigned long		expire_count;
 	unsigned long		wakeup_count;
+	//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add for QCOM patch  in 20141121*/
+	int 			inserted;
+	//#endif
 	bool			active:1;
 	bool			autosleep_enabled:1;
 };

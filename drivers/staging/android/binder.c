@@ -2453,9 +2453,13 @@ static void binder_release_work(struct list_head *list)
 			    !(t->flags & TF_ONE_WAY)) {
 				binder_send_failed_reply(t, BR_DEAD_REPLY);
 			} else {
-				binder_debug(BINDER_DEBUG_DEAD_TRANSACTION,
+				//#ifdef VENDOR_EDIT
+				/*dengnanwei@bsp.drv   add for QCOM patch  case01793380 in 20141112*/
+				//binder_debug(BINDER_DEBUG_DEAD_TRANSACTION,
+				binder_debug(BINDER_DEBUG_FREE_BUFFER, 
 					"undelivered transaction %d\n",
 					t->debug_id);
+				//#endif
 				t->buffer->transaction = NULL;
 				kfree(t);
 				binder_stats_deleted(BINDER_STAT_TRANSACTION);

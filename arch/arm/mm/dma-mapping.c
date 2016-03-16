@@ -1099,8 +1099,12 @@ static int __init dma_debug_do_init(void)
 	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
 	return 0;
 }
+#ifdef VENDOR_EDIT
+//xuanzhi.qin@OnLineRD.Android.kernel 2015/01/12 add for can enable dma API debug
+arch_initcall(dma_debug_do_init);
+#else
 fs_initcall(dma_debug_do_init);
-
+#endif /* VENDOR_EDIT */
 #ifdef CONFIG_ARM_DMA_USE_IOMMU
 
 /* IOMMU */

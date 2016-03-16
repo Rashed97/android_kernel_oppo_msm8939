@@ -395,7 +395,10 @@ static void do_compute_shiftstate(void)
 			val = KVAL(sym);
 			if (val == KVAL(K_CAPSSHIFT))
 				val = KVAL(K_SHIFT);
-
+			//#ifdef VENDOR_EDIT
+			/*dengnanwei@bsp.drv   add for QCOM patch  in 20141031*/
+			BUG_ON(val >= NR_SHIFT);
+			//#endif
 			shift_down[val]++;
 			shift_state |= (1 << val);
 		}
@@ -814,7 +817,11 @@ static void k_shift(struct vc_data *vc, unsigned char value, char up_flag)
 		if (!up_flag)
 			clr_vc_kbd_led(kbd, VC_CAPSLOCK);
 	}
-
+	
+	//#ifdef VENDOR_EDIT
+	/*dengnanwei@bsp.drv   add for QCOM patch  in 20141031*/
+	BUG_ON(value >= NR_SHIFT);
+	//#endif
 	if (up_flag) {
 		/*
 		 * handle the case that two shift or control
@@ -1319,6 +1326,10 @@ static void kbd_keycode(unsigned int keycode, int down, int hw_raw)
 	}
 
 	param.shift = shift_final = (shift_state | kbd->slockstate) ^ kbd->lockstate;
+	//#ifdef VENDOR_EDIT
+	/*dengnanwei@bsp.drv   add for QCOM patch  in 20141031*/
+	BUG_ON(shift_final >= MAX_NR_KEYMAPS);
+	//#endif
 	param.ledstate = kbd->ledflagstate;
 	key_map = key_maps[shift_final];
 

@@ -714,12 +714,14 @@ static int ncp6335d_regulator_remove(struct i2c_client *client)
 
 static struct of_device_id ncp6335d_match_table[] = {
 	{ .compatible = "onnn,ncp6335d-regulator", },
+	//{ .compatible = "onnn,ncp6335d2-regulator", },	
 	{},
 };
 MODULE_DEVICE_TABLE(of, ncp6335d_match_table);
 
 static const struct i2c_device_id ncp6335d_id[] = {
 	{"ncp6335d", -1},
+//	{"ncp6335d2", -2},	
 	{ },
 };
 

@@ -127,7 +127,7 @@ static long msm_sensor_init_subdev_ioctl(struct v4l2_subdev *sd,
 		break;
 	}
 
-	return 0;
+	return rc;
 }
 
 static int __init msm_sensor_init_module(void)
@@ -140,7 +140,7 @@ static int __init msm_sensor_init_module(void)
 		return -ENOMEM;
 	}
 
-	pr_err("MSM_SENSOR_INIT_MODULE %p", NULL);
+//	pr_err("MSM_SENSOR_INIT_MODULE %p", NULL);
 
 	/* Initialize mutex */
 	mutex_init(&s_init->imutex);
@@ -159,7 +159,7 @@ static int __init msm_sensor_init_module(void)
 	s_init->msm_sd.close_seq = MSM_SD_CLOSE_2ND_CATEGORY | 0x6;
 	ret = msm_sd_register(&s_init->msm_sd);
 	if (ret) {
-		CDBG("%s: msm_sd_register error = %d\n", __func__, rc);
+		CDBG("%s: msm_sd_register error = %d\n", __func__, ret);
 		goto error;
 	}
 

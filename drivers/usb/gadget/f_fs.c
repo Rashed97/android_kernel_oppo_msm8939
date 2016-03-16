@@ -699,6 +699,12 @@ static int ffs_ep0_open(struct inode *inode, struct file *file)
 	if (unlikely(ffs->state == FFS_CLOSING))
 		return -EBUSY;
 
+//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add for QCOM patch  in 20141129*/
+	if (atomic_read(&ffs->opened))
+		return -EBUSY;
+//#endif
+
 	file->private_data = ffs;
 	ffs_data_opened(ffs);
 
@@ -1394,9 +1400,20 @@ static void ffs_data_clear(struct ffs_data *ffs)
 {
 	ENTER();
 
+//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add for QCOM patch  in 20141129*/
+	pr_debug("%s: ffs->gadget= %p, ffs->flags= %lu\n", __func__,
+					ffs->gadget, ffs->flags);
+//#endif
 	if (test_and_clear_bit(FFS_FL_CALL_CLOSED_CALLBACK, &ffs->flags))
 		functionfs_closed_callback(ffs);
 
+//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add for QCOM patch  in 20141129*/	/* Dump ffs->gadget and ffs->flags */
+	if (ffs->gadget)
+		pr_err("%s: ffs->gadget= %p, ffs->flags= %lu\n", __func__,
+						ffs->gadget, ffs->flags);
+//#endif
 	BUG_ON(ffs->gadget);
 
 	if (ffs->epfiles)

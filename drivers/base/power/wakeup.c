@@ -81,7 +81,10 @@ struct wakeup_source *wakeup_source_create(const char *name)
 	ws = kmalloc(sizeof(*ws), GFP_KERNEL);
 	if (!ws)
 		return NULL;
-
+	//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add QCOM patch  To solve the restart after the modem mobile phone system to death    in 20141121*/
+    ws->inserted = 0;
+	//#endif
 	wakeup_source_prepare(ws, name ? kstrdup(name, GFP_KERNEL) : NULL);
 	return ws;
 }
@@ -138,7 +141,17 @@ void wakeup_source_add(struct wakeup_source *ws)
 	ws->last_time = ktime_get();
 
 	spin_lock_irqsave(&events_lock, flags);
-	list_add_rcu(&ws->entry, &wakeup_sources);
+	
+	//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add QCOM patch  To solve the restart after the modem mobile phone system to death    in 20141121*/
+	spin_lock(&ws->lock);
+	if (!ws->inserted) {
+		list_add_rcu(&ws->entry, &wakeup_sources);
+		ws->inserted = 1;
+	}
+	spin_unlock(&ws->lock);
+	//#endif
+	
 	spin_unlock_irqrestore(&events_lock, flags);
 }
 EXPORT_SYMBOL_GPL(wakeup_source_add);
@@ -155,7 +168,17 @@ void wakeup_source_remove(struct wakeup_source *ws)
 		return;
 
 	spin_lock_irqsave(&events_lock, flags);
-	list_del_rcu(&ws->entry);
+	
+	//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   add QCOM patch  To solve the restart after the modem mobile phone system to death    in 20141121*/
+	spin_lock(&ws->lock);
+	if (ws->inserted) {
+		list_del_rcu(&ws->entry);
+		ws->inserted = 0;
+	}
+	spin_unlock(&ws->lock);
+	//#endif
+	
 	spin_unlock_irqrestore(&events_lock, flags);
 	synchronize_rcu();
 }
