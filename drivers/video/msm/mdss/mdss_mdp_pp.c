@@ -23,6 +23,8 @@
 #include <linux/msm-bus.h>
 #include <linux/msm-bus-board.h>
 
+#ifdef VENDOR_EDIT
+/* kangjian 2015-04-09 add for preview and snapshot dismatch */
 struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2RGB] = {
 		0,
@@ -39,11 +41,15 @@ struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_YUV2RGB] = {
 		0,
 		{
-			0x0254, 0x0000, 0x0331,
-			0x0254, 0xff37, 0xfe60,
-			0x0254, 0x0409, 0x0000,
+			//0x0254, 0x0000, 0x0331,
+			//0x0254, 0xff37, 0xfe60,
+			//0x0254, 0x0409, 0x0000,
+			0x0200, 0x0000, 0x02ce,
+			0x0200, 0xff50, 0xfe92,
+			0x0200, 0x038b, 0x0000,
 		},
-		{ 0xfff0, 0xff80, 0xff80,},
+		//{ 0xfff0, 0xff80, 0xff80,},
+		{ 0x0000, 0xff80, 0xff80,},
 		{ 0x0, 0x0, 0x0,},
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
@@ -51,14 +57,19 @@ struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2YUV] = {
 		0,
 		{
-			0x0083, 0x0102, 0x0032,
-			0x1fb5, 0x1f6c, 0x00e1,
-			0x00e1, 0x1f45, 0x1fdc
+			//0x0083, 0x0102, 0x0032,
+			//0x1fb5, 0x1f6c, 0x00e1,
+			//0x00e1, 0x1f45, 0x1fdc
+			0x0099, 0x012d, 0x003a,
+			0xffaa, 0xff56, 0x0100,
+			0x0100, 0xff2a, 0xffd6
 		},
 		{ 0x0, 0x0, 0x0,},
-		{ 0x0010, 0x0080, 0x0080,},
+		//{ 0x0010, 0x0080, 0x0080,},
+		{ 0x0000, 0x0080, 0x0080,},
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
-		{ 0x0010, 0x00eb, 0x0010, 0x00f0, 0x0010, 0x00f0,},
+		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
+		//{ 0x0010, 0x00eb, 0x0010, 0x00f0, 0x0010, 0x00f0,},
 	},
 	[MDSS_MDP_CSC_YUV2YUV] = {
 		0,
@@ -73,6 +84,7 @@ struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
 	},
 };
+#endif
 
 #define CSC_MV_OFF	0x0
 #define CSC_BV_OFF	0x2C
@@ -1432,6 +1444,8 @@ static int pp_hist_setup(u32 *op, u32 block, struct mdss_mdp_mixer *mix)
 	mutex_lock(&hist_info->hist_mutex);
 	spin_lock_irqsave(&hist_info->hist_lock, flag);
 	if (hist_info->col_en) {
+		/* Mask histogram HW interrupt */
+		mdss_mdp_hist_irq_mask_locked();
 		*op |= op_flags;
 		if (hist_info->col_state == HIST_IDLE) {
 			/* Kick off collection */
@@ -3496,7 +3510,7 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 				struct pp_hist_col_info *hist_info,
 				char __iomem *ctl_base, u32 expect_sum)
 {
-	int kick_ret, wait_ret, ret = 0;
+	int kick_ret = 1, wait_ret, ret = 0;
 	u32 timeout, sum;
 	char __iomem *v_base;
 	unsigned long flag;
@@ -3512,7 +3526,7 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 	spin_lock_irqsave(&hist_info->hist_lock, flag);
 	if ((hist_info->col_en == 0) ||
 			(hist_info->col_state == HIST_UNKNOWN)) {
-		ret = -EINVAL;
+		ret = -EPROTO;
 		spin_unlock_irqrestore(&hist_info->hist_lock, flag);
 		goto hist_collect_exit;
 	}
@@ -3527,12 +3541,13 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 			pipe = container_of(res, struct mdss_mdp_pipe, pp_res);
 			pipe->params_changed++;
 		}
-		kick_ret = wait_for_completion_killable_timeout(
+		if (!is_hist_v2)
+			kick_ret = wait_for_completion_killable_timeout(
 				&(hist_info->first_kick), timeout /
 					HIST_KICKOFF_WAIT_FRACTION);
 		if (kick_ret != 0)
-			wait_ret = wait_for_completion_killable_timeout(
-				&(hist_info->comp), timeout);
+			wait_ret = wait_for_completion_killable(
+					&(hist_info->comp));
 
 		mutex_lock(&hist_info->hist_mutex);
 		spin_lock_irqsave(&hist_info->hist_lock, flag);
@@ -3547,22 +3562,8 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 			spin_unlock_irqrestore(&hist_info->hist_lock, flag);
 			goto hist_collect_exit;
 		} else if (wait_ret == 0) {
-			ret = -ETIMEDOUT;
-			pr_debug("bin collection timedout, state %d",
-					hist_info->col_state);
-			/*
-			 * When the histogram has timed out (usually
-			 * underrun) change the SW state back to idle
-			 * since histogram hardware will have done the
-			 * same. Histogram data also needs to be
-			 * cleared in this case, which is done by the
-			 * histogram being read (triggered by READY
-			 * state, which also moves the histogram SW back
-			 * to IDLE).
-			 */
-			hist_info->hist_cnt_time++;
 			hist_info->col_state = HIST_READY;
-		} else if (wait_ret < 0) {
+		} else if (wait_ret != 0) {
 			ret = -EINTR;
 			pr_debug("%s: bin collection interrupted",
 					__func__);
@@ -3576,6 +3577,13 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 			pr_debug("%s: state is not ready: %d",
 					__func__, hist_info->col_state);
 		}
+	}
+	if (hist_info->col_en == 0) {
+		pr_debug("hist collection cancelled!\n");
+		hist_info->col_state = HIST_UNKNOWN;
+		spin_unlock_irqrestore(&hist_info->hist_lock, flag);
+		ret = -ECANCELED;
+		goto hist_collect_exit;
 	}
 	if (hist_info->col_state == HIST_READY) {
 		hist_info->col_state = HIST_IDLE;
@@ -3844,6 +3852,34 @@ hist_collect_exit:
 
 	return ret;
 }
+
+void mdss_mdp_hist_dspp_cancel_collect()
+{
+	int i = 0;
+	unsigned long flag;
+	bool is_hist_v1;
+	struct pp_hist_col_info *hists[MDSS_MDP_INTF_MAX_LAYERMIXER];
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
+
+	if (!mdata) {
+		pr_debug("invalid mdata!\n");
+		return;
+	}
+
+	is_hist_v1 = mdata->mdp_rev < MDSS_MDP_HW_REV_103;
+	for (i = 0; i < mdata->nmixers_intf; i++)
+		hists[i] = &mdss_pp_res->dspp_hist[i];
+
+	for (i = 0; i < mdata->nmixers_intf; i++) {
+		spin_lock_irqsave(&hists[i]->hist_lock, flag);
+		hists[i]->col_en = 0;
+		if (is_hist_v1)
+			complete_all(&hists[i]->first_kick);
+		complete_all(&hists[i]->comp);
+		spin_unlock_irqrestore(&hists[i]->hist_lock, flag);
+	}
+}
+
 void mdss_mdp_hist_intr_done(u32 isr)
 {
 	u32 isr_blk, blk_idx;
@@ -3906,6 +3942,9 @@ void mdss_mdp_hist_intr_done(u32 isr)
 			spin_unlock(&hist_info->hist_lock);
 			if (need_complete)
 				complete(&hist_info->comp);
+
+			/* Unmask Histogram interrupts */
+			mdss_mdp_hist_irq_unmask_unlocked();
 		} else if (hist_info && (isr_blk & 0x1) &&
 				!(hist_info->col_en)) {
 			/*

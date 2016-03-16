@@ -51,6 +51,10 @@ struct q6v5_data {
 	bool qdsp6v56;
 	bool non_elf_image;
 	bool restart_reg_sec;
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	bool mba_region;
+#endif
 };
 
 int pil_q6v5_make_proxy_votes(struct pil_desc *pil);

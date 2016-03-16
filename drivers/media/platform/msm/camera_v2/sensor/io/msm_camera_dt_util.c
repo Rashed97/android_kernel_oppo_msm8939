@@ -16,6 +16,8 @@
 #include "msm_camera_i2c_mux.h"
 #include "msm_cci.h"
 
+#include <mach/oppo_project.h> 
+
 #define CAM_SENSOR_PINCTRL_STATE_SLEEP "cam_suspend"
 #define CAM_SENSOR_PINCTRL_STATE_DEFAULT "cam_default"
 /*#define CONFIG_MSM_CAMERA_DT_DEBUG*/
@@ -25,6 +27,24 @@
 #else
 #define CDBG(fmt, args...) do { } while (0)
 #endif
+
+#ifdef VENDOR_EDIT
+/* zhengrong.zhang 2014-11-08 Add for open flash problem in status bar problem when camera opening */
+bool camera_power_status = FALSE;
+#endif
+
+uint16_t my_flashlight_id = 0; // lxl add
+
+static uint16_t get_flashlight_id(void)
+{
+	return my_flashlight_id;
+}
+
+void set_flashlight_id(uint16_t i)
+{
+	my_flashlight_id = i;
+}
+EXPORT_SYMBOL(set_flashlight_id);
 
 int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 	int num_vreg, struct msm_sensor_power_setting *power_setting,
@@ -176,7 +196,12 @@ int msm_sensor_get_sub_module_index(struct device_node *of_node,
 			pr_err("%s:%d failed %d\n", __func__, __LINE__, rc);
 			goto ERROR;
 		}
-		sensor_info->subdev_id[SUB_MODULE_LED_FLASH] = val;
+		
+		if(is_project(15005))
+			sensor_info->subdev_id[SUB_MODULE_LED_FLASH] = get_flashlight_id();
+		else
+			sensor_info->subdev_id[SUB_MODULE_LED_FLASH] = val;
+		
 		of_node_put(src_node);
 		src_node = NULL;
 	}
@@ -443,6 +468,15 @@ int msm_camera_get_dt_power_setting_data(struct device_node *of_node,
 				ps[i].seq_val = SENSOR_GPIO_STANDBY;
 			else if (!strcmp(seq_name, "sensor_gpio_vdig"))
 				ps[i].seq_val = SENSOR_GPIO_VDIG;
+#ifdef VENDOR_EDIT
+/* xianglie.liu 2014-09-03 add for add gpio-vio config */
+			else if (!strcmp(seq_name, "sensor_gpio_vio"))
+				ps[i].seq_val = SENSOR_GPIO_VIO;
+			else if (!strcmp(seq_name, "sensor_gpio_vana"))
+				ps[i].seq_val = SENSOR_GPIO_VANA;
+			else if (!strcmp(seq_name, "sensor_gpio_vaf"))
+				ps[i].seq_val = SENSOR_GPIO_VAF;
+#endif
 			else
 				rc = -EILSEQ;
 			break;
@@ -773,6 +807,52 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 	} else
 		rc = 0;
 
+#ifdef VENDOR_EDIT	
+//lxl @camera team add for add gpio-vio config
+ 
+	rc = of_property_read_u32(of_node, "qcom,gpio-vio", &val);
+	if (rc != -EINVAL) {
+		if (rc < 0) {
+			pr_err("%s:%d read qcom,gpio-vio failed rc %d\n",
+				__func__, __LINE__, rc);
+			goto ERROR;
+		} else if (val >= gpio_array_size) {
+			pr_err("%s:%d qcom,gpio-vio invalid %d\n",
+				__func__, __LINE__, val);
+			rc = -EINVAL;
+			goto ERROR;
+		}
+		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VIO] =
+			gpio_array[val];
+		gconf->gpio_num_info->valid[SENSOR_GPIO_VIO] = 1;
+		CDBG("%s qcom,gpio-vio %d\n", __func__,
+			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VIO]);
+	} else
+		rc = 0;
+
+
+	rc = of_property_read_u32(of_node, "qcom,gpio-vaf", &val);
+	if (rc != -EINVAL) {
+		if (rc < 0) {
+			pr_err("%s:%d read qcom,gpio-vaf failed rc %d\n",
+				__func__, __LINE__, rc);
+			goto ERROR;
+		} else if (val >= gpio_array_size) {
+			pr_err("%s:%d qcom,gpio-vaf invalid %d\n",
+				__func__, __LINE__, val);
+			rc = -EINVAL;
+			goto ERROR;
+		}
+		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VAF] =
+			gpio_array[val];
+		gconf->gpio_num_info->valid[SENSOR_GPIO_VAF] = 1;
+		CDBG("%s qcom,gpio-vaf %d\n", __func__,
+			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_VAF]);
+	} else
+		rc = 0;
+//lxl end
+#endif
+
 	rc = of_property_read_u32(of_node, "qcom,gpio-reset", &val);
 	if (rc != -EINVAL) {
 		if (rc < 0) {
@@ -904,16 +984,20 @@ int msm_camera_get_dt_vreg_data(struct device_node *of_node,
 	struct camera_vreg_t **cam_vreg, int *num_vreg)
 {
 	int rc = 0, i = 0;
-	uint32_t count = 0;
+	int32_t count = 0;
 	uint32_t *vreg_array = NULL;
 	struct camera_vreg_t *vreg = NULL;
 
 	count = of_property_count_strings(of_node, "qcom,cam-vreg-name");
 	CDBG("%s qcom,cam-vreg-name count %d\n", __func__, count);
-
+#ifndef VENDOR_EDIT
+/*oppo hufeng 20150308 modify to remove projece name*/
 	if (!count)
 		return 0;
-
+#else
+	if (count<=0)
+		return count;
+#endif
 	vreg = kzalloc(sizeof(*vreg) * count, GFP_KERNEL);
 	if (!vreg) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
@@ -1163,8 +1247,15 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 		if (power_setting->delay > 20) {
 			msleep(power_setting->delay);
 		} else if (power_setting->delay) {
-			usleep_range(power_setting->delay * 1000,
-				(power_setting->delay * 1000) + 1000);
+#ifdef VENDOR_EDIT
+/*zhengrong.zhang, 20150505, modify for power delay is 1ms*/
+			if (power_setting->delay == 1)
+				usleep_range(power_setting->delay * 1000,
+					power_setting->delay * 1000);
+			else
+#endif
+				usleep_range(power_setting->delay * 1000,
+					(power_setting->delay * 1000) + 1000);
 		}
 	}
 
@@ -1176,6 +1267,11 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			goto power_up_failed;
 		}
 	}
+
+#ifdef VENDOR_EDIT
+/* zhengrong.zhang 2014-11-08 Add for open flash problem in status bar problem when camera opening */
+	camera_power_status = TRUE;
+#endif
 
 	CDBG("%s exit\n", __func__);
 	return 0;
@@ -1363,6 +1459,12 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 	msm_camera_request_gpio_table(
 		ctrl->gpio_conf->cam_gpio_req_tbl,
 		ctrl->gpio_conf->cam_gpio_req_tbl_size, 0);
+
+#ifdef VENDOR_EDIT
+/* zhengrong.zhang 2014-11-08 Add for open flash problem in status bar problem when camera opening */
+	camera_power_status = FALSE;
+#endif
+    
 	CDBG("%s exit\n", __func__);
 	return 0;
 }

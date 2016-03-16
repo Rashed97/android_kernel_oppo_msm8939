@@ -1374,7 +1374,6 @@ static int msm_vfe44_get_reg_update(uint32_t irq0_status,
 		rc = 1;
 	return rc;
 }
-
 static struct msm_vfe_axi_hardware_info msm_vfe44_axi_hw_info = {
 	.num_wm = 5,
 	.num_comp_mask = 3,

@@ -143,13 +143,16 @@ static void modem_crash_shutdown(const struct subsys_desc *subsys)
 		mdelay(STOP_ACK_TIMEOUT_MS);
 	}
 }
-
-static void modem_free_memory(const struct subsys_desc *subsys)
+#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM patch for 3G ram in 20150303*/
+static int modem_free_mem(const struct subsys_desc *subsys)
 {
 	struct modem_data *drv = subsys_to_drv(subsys);
 
-	pil_free_memory(&drv->q6->desc);
+	pil_free(&drv->q6->desc);
+	return 0;
 }
+#endif
 
 static int modem_ramdump(int enable, const struct subsys_desc *subsys)
 {
@@ -200,8 +203,11 @@ static int pil_subsys_init(struct modem_data *drv,
 	drv->subsys_desc.owner = THIS_MODULE;
 	drv->subsys_desc.shutdown = modem_shutdown;
 	drv->subsys_desc.powerup = modem_powerup;
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	drv->subsys_desc.freeup = modem_free_mem;
+#endif
 	drv->subsys_desc.ramdump = modem_ramdump;
-	drv->subsys_desc.free_memory = modem_free_memory;
 	drv->subsys_desc.crash_shutdown = modem_crash_shutdown;
 	drv->subsys_desc.err_fatal_handler = modem_err_fatal_intr_handler;
 	drv->subsys_desc.stop_ack_handler = modem_stop_ack_intr_handler;
@@ -320,6 +326,11 @@ static int pil_mss_loadable_init(struct modem_data *drv,
 	if (IS_ERR(q6->rom_clk))
 		return PTR_ERR(q6->rom_clk);
 
+#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM patch for 3G ram in 20150303*/
+	q6->mba_region = of_property_read_bool(pdev->dev.of_node,
+						"qcom,pil-mba-region");
+#endif
 	ret = pil_desc_init(q6_desc);
 
 	return ret;

@@ -456,6 +456,11 @@ int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
 	bool is_fbc = false;
 	struct mdss_mdp_prefill_params prefill_params;
 
+    #ifdef VENDOR_EDIT
+	/*chaoying.chen@EXP.BaseDrv.patch,2015/06/12  add qualcomm patch */
+	bool calc_smp_size = false;
+	#endif /* VENDOR_EDIT */
+
 	if (!pipe || !perf || !pipe->mixer_left)
 		return -EINVAL;
 
@@ -537,13 +542,29 @@ int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
 	else
 		perf->mdp_clk_rate = rate;
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/06/12  Modify for Apps Crash - Kernel BUG at /msm/mdss/mdss_mdp_ctl.c */
 	if (mixer->ctl->intf_num == MDSS_MDP_NO_INTF) {
 		perf->prefill_bytes = 0;
 		return 0;
 	}
+#else /*VENDOR_EDIT*/
+	if ((mixer->ctl->intf_num == MDSS_MDP_NO_INTF) ||
+	    (pipe->flags & MDP_SOLID_FILL) || (!pipe->has_buf)) {
+		perf->prefill_bytes = 0;
+		goto exit;
+	}
+#endif /*VENDOR_EDIT*/
 
-	prefill_params.smp_bytes = mdss_mdp_perf_calc_smp_size(pipe,
+	#ifdef VENDOR_EDIT
+	/*chaoying.chen@EXP.BaseDrv.patch,2015/06/12  add qualcomm patch */
+	   calc_smp_size = (flags & PERF_CALC_PIPE_CALC_SMP_SIZE) ? true : false;
+       prefill_params.smp_bytes = mdss_mdp_perf_calc_smp_size(pipe, calc_smp_size);
+	#else  /* VENDOR_EDIT */
+	   prefill_params.smp_bytes = mdss_mdp_perf_calc_smp_size(pipe,
 		(flags & PERF_CALC_PIPE_CALC_SMP_SIZE));
+	#endif /* VENDOR_EDIT */
+
 	prefill_params.xres = xres;
 	prefill_params.src_w = src.w;
 	prefill_params.src_h = src_h;
@@ -569,6 +590,11 @@ int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
 	else
 		perf->prefill_bytes =
 			mdss_mdp_perf_calc_pipe_prefill_cmd(&prefill_params);
+	
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/06/12  Add for Apps Crash - Kernel BUG at /msm/mdss/mdss_mdp_ctl.c */
+exit:
+#endif /*VENDOR_EDIT*/
 
 	pr_debug("mixer=%d pnum=%d clk_rate=%u bw_overlap=%llu prefill=%d\n",
 		 mixer->num, pipe->num, perf->mdp_clk_rate, perf->bw_overlap,

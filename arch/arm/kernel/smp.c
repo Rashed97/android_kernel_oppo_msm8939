@@ -46,6 +46,11 @@
 #include <asm/virt.h>
 #include <asm/mach/arch.h>
 
+//#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM case01975587  20150416*/
+#include <linux/irq_work.h>
+//#endif
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -67,6 +72,10 @@ enum ipi_msg_type {
 	IPI_CALL_FUNC_SINGLE,
 	IPI_CPU_STOP,
 	IPI_CPU_BACKTRACE,
+	//#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM case01975587  20150416*/
+	IPI_IRQ_WORK,
+	//#endif
 };
 
 static DECLARE_COMPLETION(cpu_running);
@@ -467,6 +476,16 @@ void arch_send_call_function_single_ipi(int cpu)
 {
 	smp_cross_call_common(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
 }
+//#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv	add QCM case01975587  20150416*/
+#ifdef CONFIG_IRQ_WORK
+void arch_irq_work_raise(void)
+{
+	if (is_smp())
+		smp_cross_call(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
+}
+#endif
+//#endif
 
 static const char *ipi_types[NR_IPI] = {
 #define S(x,s)	[x] = s
@@ -477,6 +496,10 @@ static const char *ipi_types[NR_IPI] = {
 	S(IPI_CALL_FUNC_SINGLE, "Single function call interrupts"),
 	S(IPI_CPU_STOP, "CPU stop interrupts"),
 	S(IPI_CPU_BACKTRACE, "CPU backtrace"),
+	//#ifdef VENDOR_EDIT
+	/* dengnw@bsp.drv	add QCM case01975587  20150416*/
+	S(IPI_IRQ_WORK, "IRQ work interrupts"),
+	//#endif
 };
 
 void show_ipi_list(struct seq_file *p, int prec)
@@ -712,7 +735,17 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 	case IPI_CPU_BACKTRACE:
 		ipi_cpu_backtrace(cpu, regs);
 		break;
-
+		
+//#ifdef VENDOR_EDIT
+/* dengnw@bsp.drv	add QCM case01975587  20150416*/
+	#ifdef CONFIG_IRQ_WORK
+	case IPI_IRQ_WORK:
+		irq_enter();
+		irq_work_run();
+		irq_exit();
+		break;
+	#endif
+//#endif
 	default:
 		printk(KERN_CRIT "CPU%u: Unknown IPI message 0x%x\n",
 		       cpu, ipinr);

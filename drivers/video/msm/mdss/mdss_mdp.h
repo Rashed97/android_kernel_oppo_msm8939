@@ -606,6 +606,8 @@ int mdss_mdp_irq_enable(u32 intr_type, u32 intf_num);
 void mdss_mdp_irq_disable(u32 intr_type, u32 intf_num);
 int mdss_mdp_hist_irq_enable(u32 irq);
 void mdss_mdp_hist_irq_disable(u32 irq);
+void mdss_mdp_hist_irq_mask_locked(void);
+void mdss_mdp_hist_irq_unmask_unlocked(void);
 void mdss_mdp_irq_disable_nosync(u32 intr_type, u32 intf_num);
 int mdss_mdp_set_intr_callback(u32 intr_type, u32 intf_num,
 			       void (*fnc_ptr)(void *), void *arg);
@@ -738,6 +740,7 @@ int mdss_mdp_hist_intr_setup(struct mdss_intr *intr, int state);
 int mdss_mdp_hist_start(struct mdp_histogram_start_req *req);
 int mdss_mdp_hist_stop(u32 block);
 int mdss_mdp_hist_collect(struct mdp_histogram_data *hist);
+void mdss_mdp_hist_dspp_cancel_collect(void);
 void mdss_mdp_hist_intr_done(u32 isr);
 
 void mdss_mdp_hscl_init(struct mdss_mdp_pipe *pipe);

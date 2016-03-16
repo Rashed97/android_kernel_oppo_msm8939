@@ -198,6 +198,11 @@ static __init int irq_work_init_cpu_notifier(void)
 	register_cpu_notifier(&cpu_notify);
 	return 0;
 }
-device_initcall(irq_work_init_cpu_notifier);
+//#ifndef VENDOR_EDIT
+/* dengnw@bsp.drv   add QCM case01975587  20150416*/
+//device_initcall(irq_work_init_cpu_notifier);
+//#else
+early_initcall(irq_work_init_cpu_notifier);
+//#endif
 
 #endif /* CONFIG_HOTPLUG_CPU */

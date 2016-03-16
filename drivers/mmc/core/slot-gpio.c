@@ -62,13 +62,17 @@ static irqreturn_t mmc_gpio_cd_irqt(int irq, void *dev_id)
 	if (unlikely(status < 0))
 		goto out;
 
+#ifdef VENDOR_EDIT
+        //Lycan.Wang@Prd.BasicDrv, 2014-07-10 Add for retry 5 times when new sdcard init error
+        host->detect_change_retry = 5;
+#endif /* VENDOR_EDIT */
+
 	if (status ^ ctx->status) {
 		pr_info("%s: slot status change detected (%d -> %d), GPIO_ACTIVE_%s\n",
 				mmc_hostname(host), ctx->status, status,
 				(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH) ?
 				"HIGH" : "LOW");
 		ctx->status = status;
-
 		/* Schedule a card detection after a debounce timeout */
 		mmc_detect_change(host, msecs_to_jiffies(200));
 	}
@@ -223,7 +227,6 @@ int mmc_gpio_request_cd(struct mmc_host *host, unsigned int gpio)
 		return ret;
 
 	ctx->status = ret;
-
 	if (irq >= 0) {
 		ret = devm_request_threaded_irq(&host->class_dev, irq,
 			NULL, mmc_gpio_cd_irqt,
@@ -231,6 +234,10 @@ int mmc_gpio_request_cd(struct mmc_host *host, unsigned int gpio)
 			ctx->cd_label, host);
 		if (ret < 0)
 			irq = ret;
+#ifndef VENDOR_EDIT
+//Lycan.Wang@Prd.BasicDrv, 2014-07-10 Add for retry 5 times when new sdcard init error
+    	enable_irq_wake(irq);
+#endif /* VENDOR_EDIT */
 	}
 
 	if (irq < 0)

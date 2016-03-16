@@ -17,6 +17,11 @@
 
 #include "mdss_dsi.h"
 #include "mdss_mdp.h"
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/01/09  Add for 14045 TP and LCD ESD */
+#include <mach/oppo_project.h>
+int (*tp_esd_check_fn)(void) = NULL;
+#endif /*VENDOR_EDIT*/
 
 /*
  * mdss_check_dsi_ctrl_status() - Check MDP5 DSI controller status periodically.
@@ -36,6 +41,10 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 	struct mdss_overlay_private *mdp5_data = NULL;
 	struct mdss_mdp_ctl *ctl = NULL;
 	int ret = 0;
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/01/09  Add for 14045 TP and LCD ESD */
+	int tp_ret=-1;
+#endif /*VENDOR_EDIT*/
 
 	pstatus_data = container_of(to_delayed_work(work),
 		struct dsi_status_data, check_status);
@@ -114,9 +123,22 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 
 	if (mipi->mode == DSI_CMD_MODE)
 		mutex_unlock(&mdp5_data->ov_lock);
-
+	
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/01/09  Add for 14045 TP and LCD ESD  */
+	if(is_project(OPPO_14045) && tp_esd_check_fn!=NULL)
+	{
+		tp_ret = tp_esd_check_fn();
+	}else{
+		tp_ret = 1;
+	}
+#endif /*VENDOR_EDIT*/
+	
 	if ((pstatus_data->mfd->panel_power_on)) {
-		if (ret > 0) {
+		/* VENDOR_EDIT Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/01/09  Modified  for 14045 TP and LCD ESD  */
+		//if (ret > 0) {
+		if ((ret > 0) && (tp_ret >= 0)) {
+		/*VENDOR_EDIT Modified end*/
 			schedule_delayed_work(&pstatus_data->check_status,
 				msecs_to_jiffies(interval));
 		} else {
