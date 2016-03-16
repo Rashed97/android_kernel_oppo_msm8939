@@ -106,7 +106,10 @@ do { \
 #define SET_TLBIALLNSNH(b, v)    SET_GLOBAL_REG(TLBIALLNSNH, (b), (v))
 #define SET_TLBIALLH(b, v)       SET_GLOBAL_REG(TLBIALLH, (b), (v))
 #define SET_TLBGSYNC(b, v)       SET_GLOBAL_REG(TLBGSYNC, (b), (v))
-#define SET_TLBGSTATUS(b, v)     SET_GLOBAL_REG(TLBGSTATUS, (b), (v))
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch case01792802.   in 20141112*/
+//#define SET_TLBGSTATUS(b, v)     SET_GLOBAL_REG(TLBSTATUS, (b), (v))
+//#endif
 #define SET_TLBIVAH(b, v)        SET_GLOBAL_REG(TLBIVAH, (b), (v))
 #define SET_GATS1UR(b, v)        SET_GLOBAL_REG(GATS1UR, (b), (v))
 #define SET_GATS1UW(b, v)        SET_GLOBAL_REG(GATS1UW, (b), (v))
@@ -145,7 +148,10 @@ do { \
 #define GET_TLBIALLNSNH(b)       GET_GLOBAL_REG(TLBIALLNSNH, (b))
 #define GET_TLBIALLH(b)          GET_GLOBAL_REG(TLBIALLH, (b))
 #define GET_TLBGSYNC(b)          GET_GLOBAL_REG(TLBGSYNC, (b))
-#define GET_TLBGSTATUS(b)        GET_GLOBAL_REG(TLBGSTATUS, (b))
+//#ifdef VENDOR_EDIT
+/*dengnanwei@bsp.drv   add QCOM patch case01792802.   in 20141112*/
+//#define GET_TLBGSTATUS(b)        GET_GLOBAL_REG(TLBSTATUS, (b))
+//#endif
 #define GET_TLBIVAH(b)           GET_GLOBAL_REG(TLBIVAH, (b))
 #define GET_GATS1UR(b)           GET_GLOBAL_REG(GATS1UR, (b))
 #define GET_GATS1UW(b)           GET_GLOBAL_REG(GATS1UW, (b))

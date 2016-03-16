@@ -2009,7 +2009,12 @@ static void etm_init_default_data(struct etm_drvdata *drvdata)
 	drvdata->enable_ctrl1 = 0x1;
 	drvdata->fifofull_level	= 0x28;
 	if (drvdata->nr_addr_cmp >= 2) {
-		drvdata->addr_val[0] = (uint32_t) _stext;
+	//#ifdef VENDOR_EDIT
+	/*geyixue@bsp.drv   Open the ETM to avoid dump have saved the PC pointer.   in 20141127*/
+	//	drvdata->addr_val[0] = (uint32_t) _stext;
+	//#else
+		drvdata->addr_val[0] = (uint32_t)0;
+	//#endif
 		drvdata->addr_val[1] = (uint32_t) _etext;
 		drvdata->addr_type[0] = ETM_ADDR_TYPE_RANGE;
 		drvdata->addr_type[1] = ETM_ADDR_TYPE_RANGE;
