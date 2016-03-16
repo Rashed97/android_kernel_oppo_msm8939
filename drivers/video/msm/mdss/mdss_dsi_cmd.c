@@ -26,6 +26,14 @@
 #include "mdss_dsi_cmd.h"
 #include "mdss_dsi.h"
 
+#ifdef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/03/11  Add for project START */
+#include <mach/oppo_project.h>
+#include <mach/oppo_boot_mode.h>
+int RTC597125_15005DEBUG = 0;
+/* YongPeng.Yi@SWDP.MultiMedia END */
+#endif /*VENDOR_EDIT*/
+
 /*
  * mipi dsi buf mechanism
  */
@@ -657,7 +665,9 @@ int mdss_dsi_cmdlist_put(struct mdss_dsi_ctrl_pdata *ctrl,
 	struct dcs_cmd_list *clist;
 	int ret = -EINVAL;
 
+
 	mutex_lock(&ctrl->cmd_mutex);
+
 	clist = &ctrl->cmdlist;
 	req = &clist->list[clist->put];
 	*req = *cmdreq;
@@ -668,6 +678,13 @@ int mdss_dsi_cmdlist_put(struct mdss_dsi_ctrl_pdata *ctrl,
 		/* drop the oldest one */
 		pr_debug("%s: DROP, tot=%d put=%d get=%d\n", __func__,
 			clist->tot, clist->put, clist->get);
+#ifdef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/03/11  Add for 15005 rtc597125 test START */
+	if(is_project(OPPO_15005)&&RTC597125_15005DEBUG)
+		pr_err("%s: DROP, tot=%d put=%d get=%d\n", __func__,
+			clist->tot, clist->put, clist->get);
+/* YongPeng.Yi@SWDP.MultiMedia END */
+#endif /*VENDOR_EDIT*/
 		clist->get++;
 		clist->get %= CMD_REQ_MAX;
 		clist->tot--;
@@ -677,12 +694,25 @@ int mdss_dsi_cmdlist_put(struct mdss_dsi_ctrl_pdata *ctrl,
 	pr_debug("%s: tot=%d put=%d get=%d\n", __func__,
 		clist->tot, clist->put, clist->get);
 
+#ifdef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/03/11  Add for 15005 RTC597125  START */
+if(is_project(OPPO_15005)&&RTC597125_15005DEBUG)
+	pr_err("%s: tot=%d put=%d get=%d\n", __func__,
+		clist->tot, clist->put, clist->get);
+/* YongPeng.Yi@SWDP.MultiMedia END */
+#endif /*VENDOR_EDIT*/
 	if (req->flags & CMD_REQ_COMMIT) {
 		if (!ctrl->cmdlist_commit)
 			pr_err("cmdlist_commit not implemented!\n");
 		else
 			ret = ctrl->cmdlist_commit(ctrl, 0);
 	}
+#ifdef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/03/11  Add for 15005 RTC597125 TEST START */
+if(is_project(OPPO_15005)&&RTC597125_15005DEBUG)
+	pr_err("%s --\n",__func__);
+/*  YongPeng.Yi@SWDP.MultiMedia END */
+#endif /*VENDOR_EDIT*/
 	return ret;
 }
 

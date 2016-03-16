@@ -29,6 +29,8 @@ enum wcnss_hw_type {
 struct wcnss_wlan_config {
 	int	use_48mhz_xo;
 	int	is_pronto_vt;
+	int irisStatus;
+	wait_queue_head_t   wcnss_ctrl_wait;
 	void __iomem	*msm_wcnss_base;
 };
 
@@ -65,6 +67,8 @@ enum {
 #define WLAN_RF_DATA0_SHIFT		0
 #define WLAN_RF_DATA1_SHIFT		1
 #define WLAN_RF_DATA2_SHIFT		2
+#define IRIS_DETECTION_SUCCESS  0
+#define IRIS_DETECTION_FAIL     1
 
 struct device *wcnss_wlan_get_device(void);
 struct resource *wcnss_wlan_get_memory_map(struct device *dev);

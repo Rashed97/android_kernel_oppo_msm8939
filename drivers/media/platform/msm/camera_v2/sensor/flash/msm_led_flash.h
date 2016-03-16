@@ -21,6 +21,8 @@
 #include "msm_camera_i2c.h"
 #include "msm_sd.h"
 
+#define FL_SKY81284 0
+#define FL_LM3642 1
 
 struct msm_led_flash_ctrl_t;
 
@@ -32,6 +34,10 @@ struct msm_flash_fn_t {
 	int32_t (*flash_led_off)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_low)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_high)(struct msm_led_flash_ctrl_t *);
+#ifdef VENDOR_EDIT
+/*OPPO zhengrong.zhang 2015-05-23 add for lm3642*/
+	int32_t (*flash_led_engine)(struct msm_led_flash_ctrl_t *);
+#endif
 };
 
 struct msm_led_flash_reg_t {
@@ -40,6 +46,10 @@ struct msm_led_flash_reg_t {
 	struct msm_camera_i2c_reg_setting *release_setting;
 	struct msm_camera_i2c_reg_setting *low_setting;
 	struct msm_camera_i2c_reg_setting *high_setting;
+#ifdef VENDOR_EDIT
+/*OPPO zhengrong.zhang 2015-05-23 add for lm3642*/
+	struct msm_camera_i2c_reg_setting *engine_setting;
+#endif
 };
 
 struct msm_led_flash_ctrl_t {
@@ -61,7 +71,7 @@ struct msm_led_flash_ctrl_t {
 	uint32_t num_sources;
 	enum msm_camera_device_type_t flash_device_type;
 	enum cci_i2c_master_t cci_i2c_master;
-        enum msm_camera_led_config_t led_state;
+	enum msm_camera_led_config_t led_state;
 	uint32_t subdev_id;
 	struct msm_pinctrl_info pinctrl_info;
 };
@@ -86,4 +96,8 @@ int msm_flash_led_release(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_off(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_low(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_high(struct msm_led_flash_ctrl_t *fctrl);
+#ifdef VENDOR_EDIT
+/*OPPO zhengrong.zhang 2015-05-23 add for lm3642*/
+int msm_flash_led_engine(struct msm_led_flash_ctrl_t *fctrl);
+#endif
 #endif
