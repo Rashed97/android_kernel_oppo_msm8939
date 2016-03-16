@@ -42,7 +42,9 @@
 #include <asm/stacktrace.h>
 #include <asm/mach/time.h>
 #include <asm/tls.h>
-
+#ifdef VENDOR_EDIT //yixue.ge@BSP.drv modify for if restart function not register and kernel crash,the system will stop by while 1
+#include <soc/qcom/scm.h>
+#endif
 #ifdef CONFIG_CC_STACKPROTECTOR
 #include <linux/stackprotector.h>
 unsigned long __stack_chk_guard __read_mostly;
@@ -152,9 +154,58 @@ void soft_restart(unsigned long addr)
 	BUG();
 }
 
+#ifndef VENDOR_EDIT //yixue.ge@BSP.drv modify for if restart function not register and kernel crash,the system will stop by while 1
 static void null_restart(enum reboot_mode reboot_mode, const char *cmd)
 {
 }
+#else
+#define USE_PS_HOLD_RESART
+#define SCM_IO_DISABLE_PMIC_ARBITER	1
+#define SCM_WDOG_DEBUG_BOOT_PART	0x9
+static void null_restart(enum reboot_mode reboot_mode, const char *cmd)
+{
+#ifdef USE_PS_HOLD_RESART
+	void __iomem *msm_ps_hold;
+	
+	pr_crit("Calling PS_HOLD to reboot\n");
+	msm_ps_hold = ioremap(0x4ab000, 0x4);
+	mb();
+	scm_call_atomic1(SCM_SVC_PWR, SCM_IO_DISABLE_PMIC_ARBITER, 0);
+	mb();
+	if (msm_ps_hold) {
+		scm_call_atomic2(SCM_SVC_BOOT,
+			    SCM_WDOG_DEBUG_BOOT_PART, 1, 0);
+		mb();
+		__raw_writel(0, msm_ps_hold);
+		mb();
+	}
+	mb();
+	pr_err("Powering off has failed\n");
+	while(1);
+#else
+	void __iomem *msm_wdog;
+
+	pr_crit("Calling WDOG to reboot\n");
+	msm_wdog = ioremap(0xb017000, 0x1000);
+	mb();
+	if (msm_wdog) {
+		scm_call_atomic2(SCM_SVC_BOOT,
+			    SCM_WDOG_DEBUG_BOOT_PART, 1, 0);
+		mb();
+		__raw_writel(1, msm_wdog + 0x08);
+		mb();
+		__raw_writel(1, msm_wdog + 0x14);
+		mb();
+		__raw_writel(1, msm_wdog + 0x04);
+		mb();
+	} 
+	mb();
+	
+	pr_err("Powering off has failed\n");
+	while(1);
+#endif	
+}
+#endif
 
 /*
  * Function pointers to optional machine specific functions
@@ -314,62 +365,55 @@ void machine_restart(char *cmd)
 /*
  * dump a block of kernel memory from around the given address
  */
-static void show_data(unsigned long addr, int nbytes, const char *name)
-{
-	int	i, j;
-	int	nlines;
-	u32	*p;
-	bool	is_cma = 0;
+//#ifdef VENDOR_EDIT
+/*zhangrongchun@bsp.drv   add QCOM patch give the patch   in 20150113*/
+static void show_data(unsigned long addr, int nbytes, const char *name) 
+{ 
+	int	i, j; 
+	int	nlines; 
+	u32	*p; 
 
-	/*
-	 * don't attempt to dump non-kernel addresses or
-	 * values that are probably just small negative numbers
-	 */
-	if (addr < PAGE_OFFSET || addr > -256UL)
-		return;
+	/* 
+	* don't attempt to dump non-kernel addresses or 
+	* values that are probably just small negative numbers 
+	*/ 
+	if (addr < PAGE_OFFSET || addr > -256UL) 
+		return; 
 
-	printk("\n%s: %#lx:\n", name, addr);
+	printk("\n%s: %#lx:\n", name, addr); 
 
-	/*
-	 * round address down to a 32 bit boundary
-	 * and always dump a multiple of 32 bytes
-	 */
-	p = (u32 *)(addr & ~(sizeof(u32) - 1));
-	nbytes += (addr & (sizeof(u32) - 1));
-	nlines = (nbytes + 31) / 32;
+	/* 
+	* round address down to a 32 bit boundary 
+	* and always dump a multiple of 32 bytes 
+	*/ 
+	p = (u32 *)(addr & ~(sizeof(u32) - 1)); 
+	nbytes += (addr & (sizeof(u32) - 1)); 
+	nlines = (nbytes + 31) / 32; 
 
 
-	for (i = 0; i < nlines; i++) {
-		/*
-		 * just display low 16 bits of address to keep
-		 * each line of the dump < 80 characters
-		 */
-		printk("%04lx ", (unsigned long)p & 0xffff);
-		for (j = 0; j < 8; j++) {
-			u32	data;
-			/*
-			 * vmalloc addresses may point to
-			 * memory-mapped peripherals. CMA
-			 * addresses may be locked down.
-			 */
-			if (virt_addr_valid(p)) {
-				is_cma = is_cma_pageblock(virt_to_page(p));
-
-				if (is_cma || probe_kernel_address(p, data)) {
-					printk(" ********");
-				} else {
-					printk(" %08x", data);
-				}
-				++p;
-			}
-			else {
-				printk(" ********");
-			}
-		}
-		printk("\n");
-	}
+	for (i = 0; i < nlines; i++) { 
+	/* 
+	* just display low 16 bits of address to keep 
+	* each line of the dump < 80 characters 
+	*/ 
+		printk("%04lx ", (unsigned long)p & 0xffff); 
+		for (j = 0; j < 8; j++) { 
+			u32	data; 
+			/* 
+			* vmalloc addresses may point to 
+			* memory-mapped peripherals 
+			*/ 
+			if (!virt_addr_valid(p) || probe_kernel_address(p, data)) { 
+				printk(" ********"); 
+			} else { 
+				printk(KERN_CONT " %08x", data); 
+			} 
+			++p; 
+		} 
+		printk(KERN_CONT "\n"); 
+	} 
 }
-
+//#endif
 static void show_extra_register_data(struct pt_regs *regs, int nbytes)
 {
 	mm_segment_t fs;

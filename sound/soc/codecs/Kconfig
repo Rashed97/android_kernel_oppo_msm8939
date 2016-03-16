@@ -552,3 +552,7 @@ config SND_SOC_MSM_HDMI_CODEC_RX
 	help
 	HDMI audio drivers should be built only if the platform
         supports hdmi panel.
+
+#John.Xu add for ts4621 2014.10.24
+config SND_SOC_TS4621
+	tristate
