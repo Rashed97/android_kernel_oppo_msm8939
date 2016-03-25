@@ -457,6 +457,13 @@
 		qcom,cpr-voltage-ceiling = <1050000 1150000 1350000>;
 		qcom,cpr-voltage-floor = <1050000 1050000 1100000>;
 		vdd-apc-supply = <&ncp6335d>;
+		//#ifdef VENDOR_EDIT 2015-01-16 dengnw modify for change other power ic to supply app core 
+		vdd-apc-optional-prim-supply = <&fan53555>;
+		qcom,cpr-fan53555-apc-volt-step = <12500>;
+		qcom,cpr-fan53555-step-quotient = <26>;
+		qcom,cpr-fan53555-up-threshold = <2>;
+		qcom,cpr-fan53555-down-threshold = <3>;
+		//#endif 
 
 		qcom,vdd-mx-corner-map = <4 5 7>;
 		qcom,vdd-mx-vmin-method = <4>;
