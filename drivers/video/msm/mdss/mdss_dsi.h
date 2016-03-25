@@ -281,6 +281,18 @@ enum {
 	DSI_CTRL_MAX,
 };
 
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/01/09  Add for LCD driver */
+enum {
+	LCD_15009_JDI_NT35592=0,
+	LCD_15009_TM_NT35592,
+	LCD_TM_OTA9605A,
+	LCD_15037_TM_OTM9605,
+	LCD_15037_TRULY_HX8389C,
+	LCD_15035_TM_OTM9605,	
+	LCD_UNKNOW,
+}; 
+#endif /*VENDOR_EDIT*/
 #define DSI_CTRL_LEFT		DSI_CTRL_0
 #define DSI_CTRL_RIGHT		DSI_CTRL_1
 #define DSI_CTRL_CLK_SLAVE	DSI_CTRL_RIGHT
@@ -369,6 +381,15 @@ struct mdss_dsi_ctrl_pdata {
 
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds off_cmds;
+
+#ifdef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/06/08  Add for 15009 cmd select START */
+	struct dsi_panel_cmds yellow_on_cmds;
+	struct dsi_panel_cmds normal_on_cmds;
+	struct dsi_panel_cmds balance_on_cmds;
+/* YongPeng.Yi@SWDP.MultiMedia END */
+#endif /*VENDOR_EDIT*/
+
 	struct dsi_panel_cmds status_cmds;
 	u32 status_cmds_rlen;
 	u32 status_value;
@@ -396,7 +417,6 @@ struct mdss_dsi_ctrl_pdata {
 	bool core_power;
 	bool mmss_clamp;
 	bool timing_db_mode;
-
 	struct dsi_buf tx_buf;
 	struct dsi_buf rx_buf;
 	struct dsi_buf status_buf;
