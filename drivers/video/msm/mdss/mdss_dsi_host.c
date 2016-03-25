@@ -28,6 +28,11 @@
 #include "mdss_panel.h"
 #include "mdss_debug.h"
 
+#ifdef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2014/08/25  Add for crash when set brightness */
+#include <soc/oppo/oppo_project.h>
+#endif /*VENDOR_EDIT*/
+
 #define VSYNC_PERIOD 17
 
 struct mdss_dsi_ctrl_pdata *ctrl_list[DSI_CTRL_MAX];
@@ -501,8 +506,16 @@ static void mdss_dsi_wait_clk_lane_to_stop(struct mdss_dsi_ctrl_pdata *ctrl)
 	/* force clk lane tx stop -- bit 20 */
 	mdss_dsi_cfg_lane_ctrl(ctrl, BIT(20), 1);
 
+#ifndef VENDOR_EDIT
+/* Xiaori.Yuan@Mobile Phone Software Dept.Driver, 2015/05/20  Modify for error log too much goto dump */
 	if (mdss_dsi_poll_clk_lane(ctrl) == false)
 		pr_err("%s: clk lane recovery failed\n", __func__);
+#else /*VENDOR_EDIT*/
+	if (mdss_dsi_poll_clk_lane(ctrl) == false)
+		pr_err("%s: clk lane recovery failed\n", __func__);
+	else 
+	 	ctrl->clk_lane_cnt = 0; 
+#endif /*VENDOR_EDIT*/
 
 	/* clear clk lane tx stop -- bit 20 */
 	mdss_dsi_cfg_lane_ctrl(ctrl, BIT(20), 0);
@@ -943,7 +956,9 @@ void mdss_dsi_cmd_bta_sw_trigger(struct mdss_panel_data *pdata)
 	pr_debug("%s: BTA done, status = %d\n", __func__, status);
 }
 
-static int mdss_dsi_read_status(struct mdss_dsi_ctrl_pdata *ctrl)
+//wuyu debug
+
+int mdss_dsi_read_status(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	struct dcs_cmd_req cmdreq;
 
@@ -973,10 +988,15 @@ int mdss_dsi_reg_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
 	int ret = 0;
 
+
 	if (ctrl_pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return 0;
 	}
+#ifndef VENDOR_EDIT
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/05/21  Delete for esd debug log */
+	pr_err("%s: ctrl_pdata->status_buf.data[0] =%d \n", __func__, ctrl_pdata->status_buf.data[0]);
+#endif /*VENDOR_EDIT*/
 
 	pr_debug("%s: Checking Register status\n", __func__);
 
@@ -2170,9 +2190,16 @@ static int dsi_event_thread(void *data)
 						"edp", "hdmi", "panic");
 		}
 
+#ifndef VENDOR_EDIT
 		if (todo & DSI_EV_DSI_FIFO_EMPTY)
 			mdss_dsi_sw_reset(ctrl, true);
-
+#else /*VENDOR_EDIT*/
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/05/23  Add for LCD screen blink START */
+		if(!(OPPO_15009)){
+			if (todo & DSI_EV_DSI_FIFO_EMPTY)
+				mdss_dsi_sw_reset(ctrl, true);
+		}
+#endif /*VEDNOR_EDIT*/
 		if (todo & DSI_EV_DLNx_FIFO_OVERFLOW) {
 			mutex_lock(&dsi_mtx);
 			/*
@@ -2293,15 +2320,36 @@ void mdss_dsi_fifo_status(struct mdss_dsi_ctrl_pdata *ctrl)
 	if (status & 0xcccc4489) {
 		MIPI_OUTP(base + 0x000c, status);
 		pr_err("%s: status=%x\n", __func__, status);
+
+#ifndef VENDOR_EDIT
 		if (status & 0x44440000) {/* DLNx_HS_FIFO_OVERFLOW */
 			dsi_send_events(ctrl, DSI_EV_DLNx_FIFO_OVERFLOW, 0);
 			/* Ignore FIFO EMPTY when overflow happens */
 			status = status & 0xeeeeffff;
 		}
+#else /*VENDOR_EDIT*/
+/* YongPeng.Yi@SWDP.MultiMedia, 2015/05/23  Add for LCD screen blink START */
+		if(!is_project(OPPO_15009)){
+			if (status & 0x44440000) {/* DLNx_HS_FIFO_OVERFLOW */
+				dsi_send_events(ctrl, DSI_EV_DLNx_FIFO_OVERFLOW, 0);
+				/* Ignore FIFO EMPTY when overflow happens */
+				status = status & 0xeeeeffff;
+			}
+		}
+#endif /*VEDNOR_EDIT*/
 		if (status & 0x0080)  /* CMD_DMA_FIFO_UNDERFLOW */
 			dsi_send_events(ctrl, DSI_EV_MDP_FIFO_UNDERFLOW, 0);
+
+#ifndef VENDOR_EDIT
 		if (status & 0x11110000) /* DLN_FIFO_EMPTY */
 			dsi_send_events(ctrl, DSI_EV_DSI_FIFO_EMPTY, 0);
+#else /*VENDOR_EDIT*/
+/* <- YongPeng.Yi@SWDP.MultiMedia, 2015/05/23  Add for LCD screen blink  START */
+		if(!is_project(OPPO_15009)){
+			if (status & 0x11110000) /* DLN_FIFO_EMPTY */
+				dsi_send_events(ctrl, DSI_EV_DSI_FIFO_EMPTY, 0);
+		}
+#endif /*VEDNOR_EDIT*/
 	}
 }
 
