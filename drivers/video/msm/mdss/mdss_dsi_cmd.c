@@ -690,7 +690,6 @@ int mdss_dsi_cmdlist_put(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	pr_debug("%s: tot=%d put=%d get=%d\n", __func__,
 		clist->tot, clist->put, clist->get);
-
 	if (req->flags & CMD_REQ_COMMIT) {
 		if (!ctrl->cmdlist_commit)
 			pr_err("cmdlist_commit not implemented!\n");
