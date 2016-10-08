@@ -87,3 +87,4 @@ ifeq ($(CONFIG_BOSCH_BMA2X2_ENABLE_INT2),y)
 endif
 
 obj-$(CONFIG_BTP_FPC1021)  += fpc1020_main.o fpc1020_capture.o fpc1020_common.o fpc1020_regulator.o fpc1020_nav.o
+obj-$(CONFIG_BTP_FPC1140)	+= fpc1020_tee_qsee4.o

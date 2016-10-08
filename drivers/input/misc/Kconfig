@@ -846,5 +846,10 @@ config BTP_FPC1021
 	tristate "FPC_BTP fingerprint sensor support"
 	depends on SPI_MASTER
 
+config BTP_FPC1140
+	default n
+	tristate "FPC_BTP fingerprint sensor support"
+	depends on SPI_MASTER
+
 endif
 
