@@ -829,15 +829,15 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 	/* Park lens data */
 	a_ctrl->park_lens = set_info->actuator_params.park_lens;
 	a_ctrl->initial_code = set_info->af_tuning_params.initial_code;
+#ifdef CONFIG_MACH_OPPO
+	a_ctrl->actuator_state = ACTUATOR_POWER_UP;
+#endif
 	if (a_ctrl->func_tbl->actuator_init_step_table)
 		rc = a_ctrl->func_tbl->
 			actuator_init_step_table(a_ctrl, set_info);
 
 	a_ctrl->curr_step_pos = 0;
 	a_ctrl->curr_region_index = 0;
-#ifdef CONFIG_MACH_OPPO
-	a_ctrl->actuator_state = ACTUATOR_POWER_UP;
-#endif
 	CDBG("Exit\n");
 
 	return rc;
